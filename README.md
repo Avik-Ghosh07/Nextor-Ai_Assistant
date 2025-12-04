@@ -114,7 +114,7 @@ Next time you say the trigger phrase, Nextor will respond with your custom answe
 ---
 
 ## 👨‍💻 Created By
-**Mister Avik Ghosh**
+**Mr. Avik Ghosh**
 
 ---
 

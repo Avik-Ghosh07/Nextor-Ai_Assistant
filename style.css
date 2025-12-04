@@ -1,0 +1,189 @@
+/* ===========================
+   FONT & BASE STYLES
+   =========================== */
+* { 
+    font-family: 'Inter', sans-serif; 
+}
+
+/* ===========================
+   ANIMATIONS
+   =========================== */
+@keyframes float { 
+    0%, 100% { transform: translateY(0px); } 
+    50% { transform: translateY(-15px); } 
+}
+
+@keyframes slide-up { 
+    from { opacity: 0; transform: translateY(20px); } 
+    to { opacity: 1; transform: translateY(0); } 
+}
+
+@keyframes pulse-ring { 
+    0%, 100% { transform: scale(1); opacity: 1; } 
+    50% { transform: scale(1.1); opacity: 0.5; } 
+}
+
+.animate-float { 
+    animation: float 8s ease-in-out infinite; 
+}
+
+.animate-slide-up { 
+    animation: slide-up 0.4s ease-out forwards; 
+}
+
+/* ===========================
+   GLASS EFFECT
+   =========================== */
+.glass-effect { 
+    background: rgba(31, 41, 55, 0.8); 
+    backdrop-filter: blur(20px); 
+    border: 1px solid rgba(75, 85, 99, 0.3); 
+}
+
+/* ===========================
+   STATUS INDICATORS
+   =========================== */
+.status-online { 
+    background: #10b981; 
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.3); 
+}
+
+.status-offline { 
+    background: #6b7280; 
+    box-shadow: 0 0 10px rgba(107, 114, 128, 0.3); 
+}
+
+/* ===========================
+   CHIPS / BUTTONS
+   =========================== */
+.chip { 
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    background: rgba(55, 65, 81, 0.6);
+    border: 1px solid rgba(75, 85, 99, 0.5);
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.3s;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #e5e7eb;
+}
+
+.chip:hover {
+    background: rgba(75, 85, 99, 0.8);
+    border-color: #9ca3af;
+    transform: scale(1.05);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* ===========================
+   CUSTOM SCROLLBAR
+   =========================== */
+.custom-scrollbar::-webkit-scrollbar { 
+    width: 6px; 
+}
+
+.custom-scrollbar::-webkit-scrollbar-track { 
+    background: rgba(31, 41, 55, 0.5); 
+    border-radius: 10px; 
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb { 
+    background: rgba(107, 114, 128, 0.6); 
+    border-radius: 10px; 
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { 
+    background: rgba(107, 114, 128, 0.8); 
+}
+
+/* ===========================
+   WEATHER COMPONENTS
+   =========================== */
+.weather-stat { 
+    background: #0f1729; 
+    border: 1px solid #1e3a5f; 
+    border-radius: 0.75rem; 
+    padding: 1rem; 
+    text-align: center; 
+    cursor: pointer; 
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); 
+}
+
+.weather-stat i { 
+    color: #fbbf24; 
+    font-size: 1.25rem; 
+    margin-bottom: 0.5rem; 
+    display: block; 
+}
+
+.weather-stat .value { 
+    color: #ffffff; 
+    font-size: 1.25rem; 
+    font-weight: 700; 
+    display: block; 
+    margin-bottom: 0.25rem; 
+}
+
+.weather-stat .label { 
+    color: #94a3b8; 
+    font-size: 0.65rem; 
+    text-transform: uppercase; 
+    letter-spacing: 0.05em; 
+    font-weight: 600; 
+}
+
+.main-temp { 
+    background: linear-gradient(135deg, #1e3a5f 0%, #0f1729 100%); 
+    border: 2px solid #3b82f6; 
+    border-radius: 1rem; 
+    padding: 1.5rem; 
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3); 
+}
+
+/* ===========================
+   TIME DISPLAY
+   =========================== */
+.current-time-display { 
+    background: rgba(16, 185, 129, 0.15); 
+    border: 1px solid rgba(16, 185, 129, 0.3); 
+    border-radius: 1rem; 
+    padding: 1rem; 
+    text-align: center; 
+}
+
+/* ===========================
+   LISTENING INDICATOR
+   =========================== */
+.listening-pulse { 
+    animation: pulse-ring 1.5s ease-in-out infinite; 
+}
+
+#listening-label { 
+    display: none; 
+}
+
+#status-indicator.listening ~ #listening-label { 
+    display: flex; 
+}
+
+#status-indicator-desktop.listening ~ #listening-label-desktop { 
+    display: flex; 
+}
+
+#listening-label-desktop { 
+    display: none; 
+}
+
+/* Only pulse when listening */
+#status-indicator.listening ~ #listening-label .listening-pulse,
+#status-indicator-desktop.listening ~ #listening-label-desktop .listening-pulse {
+    animation: pulse-ring 1.5s ease-in-out infinite;
+}
+
+#listening-label .listening-pulse,
+#listening-label-desktop .listening-pulse {
+    animation: none;
+}

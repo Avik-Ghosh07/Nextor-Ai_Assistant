@@ -78,6 +78,122 @@
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
 }
 
+/* Quick Command Buttons */
+.quick-cmd-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: rgba(31, 41, 55, 0.4);
+    border: 1px solid rgba(75, 85, 99, 0.3);
+    border-radius: 1rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    color: white;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.quick-cmd-btn:hover {
+    background: rgba(55, 65, 81, 0.6);
+    border-color: rgba(139, 92, 246, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.quick-cmd-btn .cmd-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.quick-cmd-btn span {
+    text-align: center;
+    line-height: 1.2;
+}
+
+/* ===========================
+   CHAT MESSAGE BUBBLES
+   =========================== */
+.chat-message {
+    display: flex;
+    gap: 0.75rem;
+    animation: slide-up 0.3s ease-out;
+}
+
+.chat-message.user {
+    justify-content: flex-end;
+}
+
+.chat-message.bot {
+    justify-content: flex-start;
+}
+
+.message-bubble {
+    max-width: 75%;
+    padding: 0.75rem 1rem;
+    border-radius: 1rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    word-wrap: break-word;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.message-bubble.user {
+    background: linear-gradient(135deg, #7c3aed 0%, #9333ea 100%);
+    color: white;
+    border-bottom-right-radius: 0.25rem;
+}
+
+.message-bubble.bot {
+    background: rgba(55, 65, 81, 0.8);
+    color: #e5e7eb;
+    border-bottom-left-radius: 0.25rem;
+    border: 1px solid rgba(75, 85, 99, 0.5);
+}
+
+.message-bubble.bot .bot-icon {
+    color: #a78bfa;
+    margin-right: 0.5rem;
+}
+
+/* Typing indicator */
+.typing-indicator {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.75rem 1rem;
+}
+
+.typing-indicator span {
+    width: 0.5rem;
+    height: 0.5rem;
+    background: #a78bfa;
+    border-radius: 50%;
+    animation: typing-bounce 1.4s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typing-bounce {
+    0%, 60%, 100% {
+        transform: translateY(0);
+    }
+    30% {
+        transform: translateY(-0.5rem);
+    }
+}
+
 /* ===========================
    CUSTOM SCROLLBAR
    =========================== */
@@ -300,15 +416,15 @@
         padding: 2rem;
     }
     
-    #chat-messages {
-        max-height: 450px !important;
+    /* Better spacing for desktop */
+    section > div:first-child {
+        gap: 2rem;
     }
     
-    /* Grid layout */
-    section > div:last-child {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 2rem;
+    /* Full height chat panel */
+    #chat-messages {
+        min-height: 500px !important;
+        max-height: none !important;
     }
 }
 
@@ -319,20 +435,19 @@
         padding: 2.5rem;
     }
     
-    #chat-messages {
-        max-height: 500px !important;
+    /* Larger spacing */
+    section > div:first-child {
+        gap: 2.5rem;
     }
     
-    /* 3 column grid for optimal space */
-    section > div:last-child {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 2rem;
+    /* Better proportions */
+    .glass-effect {
+        padding: 2rem !important;
     }
-    
-    /* Weather spans 2 columns */
-    section > div:last-child > div:first-child {
-        grid-column: span 2;
+
+    /* Conversation log spacing */
+    #conversation-log {
+        max-height: 500px;
     }
 }
 

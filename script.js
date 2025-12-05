@@ -1401,6 +1401,114 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // ========================================
+    // Chat Functionality (Disabled - Chat panel removed)
+    // ========================================
+    const chatInput = document.getElementById('chat-input');
+    const sendChatBtn = document.getElementById('send-chat');
+    const chatMessages = document.getElementById('chat-messages');
+    const clearChatBtn = document.getElementById('clear-chat');
+    
+    // Only initialize if elements exist
+    if (chatInput && sendChatBtn && chatMessages && clearChatBtn) {
+        let chatHistory = [];
+
+        function addChatMessage(message, isUser = true) {
+            // Remove welcome message if exists
+            const welcome = chatMessages.querySelector('.text-center');
+            if (welcome) welcome.remove();
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${isUser ? 'user' : 'bot'}`;
+            
+            if (isUser) {
+                messageDiv.innerHTML = `
+                    <div class="message-bubble user">
+                        ${message}
+                    </div>
+                `;
+            } else {
+                messageDiv.innerHTML = `
+                    <div class="message-bubble bot">
+                        <i class="fas fa-robot bot-icon"></i>${message}
+                    </div>
+                `;
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function sendChatMessage() {
+            const message = chatInput.value.trim();
+            if (!message) return;
+
+            // Add user message
+            addChatMessage(message, true);
+            chatInput.value = '';
+
+            // Show typing indicator
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'chat-message bot';
+            typingDiv.id = 'typing-indicator';
+            typingDiv.innerHTML = `
+                <div class="message-bubble bot">
+                    <div class="typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            `;
+            chatMessages.appendChild(typingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            try {
+                const reply = await fetchChatReply(message, chatHistory);
+                
+                // Remove typing indicator
+                document.getElementById('typing-indicator')?.remove();
+                
+                // Add bot response
+                addChatMessage(reply, false);
+                
+                // Update history
+                chatHistory.push({ role: 'user', message });
+                chatHistory.push({ role: 'assistant', message: reply });
+                
+                // Keep only last 10 messages in history
+                if (chatHistory.length > 20) {
+                    chatHistory = chatHistory.slice(-20);
+                }
+            } catch (error) {
+                document.getElementById('typing-indicator')?.remove();
+                addChatMessage('Sorry, I encountered an error. Please try again.', false);
+            }
+        }
+
+        sendChatBtn.addEventListener('click', sendChatMessage);
+        
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendChatMessage();
+            }
+        });
+
+        clearChatBtn.addEventListener('click', () => {
+            chatHistory = [];
+            chatMessages.innerHTML = `
+                <div class="text-center py-8">
+                    <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-purple-500/20 flex items-center justify-center">
+                        <i class="fas fa-robot text-purple-400 text-xl"></i>
+                    </div>
+                    <p class="text-gray-400 text-sm font-medium">Start chatting with Nextor</p>
+                    <p class="text-gray-500 text-xs mt-1">Type your message below</p>
+                </div>
+            `;
+        });
+    }
+
     // Debug logging (only in development)
     const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     if (isDev) {

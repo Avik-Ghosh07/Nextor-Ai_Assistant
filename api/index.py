@@ -2,6 +2,9 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 import sys
+import random
+import re
+import datetime as dt
 
 app = Flask(__name__)
 CORS(app)
@@ -24,21 +27,53 @@ if GEMINI_AVAILABLE and GEMINI_API_KEY:
     except Exception as e:
         print(f"✗ Gemini failed: {e}", file=sys.stderr)
 
-# Import the logic from other files
-import importlib.util
-import os
+def get_gemini_reply(message, history=None):
+    """Get reply from Gemini AI."""
+    if not gemini_model:
+        return None
+    try:
+        context = f"User: {message}"
+        if history:
+            history_text = "\n".join([f"{h.get('role', 'User')}: {h.get('message', '')}" for h in history[-5:]])
+            context = f"{history_text}\nUser: {message}"
+        
+        response = gemini_model.generate_content(context)
+        if response and response.text:
+            reply = response.text.strip()
+            if reply.lower().startswith('nextor:'):
+                reply = reply[7:].strip()
+            return reply
+        return None
+    except Exception:
+        return None
 
-# Load chat functions
-chat_spec = importlib.util.spec_from_file_location("chat_module", os.path.join(os.path.dirname(__file__), "chat.py"))
-chat_module = importlib.util.module_from_spec(chat_spec)
-chat_spec.loader.exec_module(chat_module)
+def get_fallback_reply(message):
+    """Pattern-based fallback responses."""
+    lowered = message.lower()
+    now = dt.datetime.now()
+    greeting = f"Good {('morning' if now.hour < 12 else 'afternoon' if now.hour < 18 else 'evening')}!"
+    
+    greeting_words = ["\\bhi\\b", "\\bhello\\b", "\\bhey\\b"]
+    if any(re.search(pattern, lowered) for pattern in greeting_words) and len(lowered.split()) <= 3:
+        return random.choice([
+            f"{greeting} I'm Nextor, your AI assistant. How can I help?",
+            f"{greeting} Ready to assist you!",
+            "Hello! What can I do for you today?"
+        ])
+    
+    if "how are you" in lowered:
+        return "I'm doing great! How can I help you today?"
+    
+    if "thank" in lowered:
+        return random.choice(["You're welcome!", "Anytime!", "Happy to help!"])
+    
+    if "bye" in lowered or "goodbye" in lowered:
+        return random.choice(["Goodbye!", "See you later!", "Take care!"])
+    
+    return "I'm here to help! Ask me anything."
 
-# Load weather functions  
-weather_spec = importlib.util.spec_from_file_location("weather_module", os.path.join(os.path.dirname(__file__), "weather.py"))
-weather_module = importlib.util.module_from_spec(weather_spec)
-weather_spec.loader.exec_module(weather_module)
-
-@app.route('/api/health')
+@app.route('/health')
+@app.route('/')
 def health():
     return jsonify({
         "status": "ok",
@@ -46,7 +81,7 @@ def health():
         "gemini_configured": bool(GEMINI_API_KEY)
     })
 
-@app.route('/api/chat', methods=['POST'])
+@app.route('/chat', methods=['POST'])
 def chat():
     data = request.get_json()
     message = data.get('message', '').strip()
@@ -55,16 +90,13 @@ def chat():
     if not message:
         return jsonify({"error": "Message is required"}), 400
     
-    # Try Gemini first
-    reply = chat_module.get_gemini_reply(message, history) if gemini_model else None
-    
-    # Fallback to pattern matching
+    reply = get_gemini_reply(message, history)
     if not reply:
-        reply = chat_module.get_fallback_reply(message)
+        reply = get_fallback_reply(message)
     
     return jsonify({"reply": reply})
 
-@app.route('/api/weather')
+@app.route('/weather')
 def weather():
     lat = request.args.get('lat')
     lon = request.args.get('lon')
@@ -78,10 +110,6 @@ def weather():
         response = requests.get(url, timeout=10)
         response.raise_for_status()
         data = response.json()
-        
         return jsonify(data)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-if __name__ == '__main__':
-    app.run()

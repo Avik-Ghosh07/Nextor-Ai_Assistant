@@ -249,5 +249,9 @@ def weather():
         print(f"Weather error: {e}", file=sys.stderr)
         return jsonify({"error": str(e)}), 500
 
-# Vercel serverless function handler
-handler = app
+# For local development
+if __name__ == "__main__":
+    app.run(debug=True)
+
+# Export app for Vercel
+app = app

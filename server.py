@@ -400,7 +400,7 @@ def chat() -> Any:
     return jsonify({"reply": reply})
 
 
-@app.get("/health")
+@app.get("/api/health")
 def health() -> Any:
     return jsonify({
         "status": "healthy",
@@ -410,5 +410,17 @@ def health() -> Any:
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False, threaded=True)
+    # Use Waitress for production-grade WSGI server
+    try:
+        from waitress import serve
+        print("🚀 Starting Nextor AI with Waitress server...")
+        print("📡 Server running at http://127.0.0.1:5000")
+        print("🌐 Also accessible at http://0.0.0.0:5000")
+        print("Press Ctrl+C to stop the server")
+        serve(app, host="0.0.0.0", port=5000, threads=6)
+    except ImportError:
+        print("⚠️  Waitress not installed. Using Flask development server...")
+        print("💡 Install Waitress for better performance: pip install waitress")
+        app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False, threaded=True)
+
 

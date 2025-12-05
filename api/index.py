@@ -206,24 +206,45 @@ def weather():
             params={
                 "latitude": lat,
                 "longitude": lon,
-                "current_weather": "true",
+                "current": "temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code",
                 "timezone": "auto"
             },
             timeout=10
         )
         response.raise_for_status()
-        data = response.json()
+        payload = response.json()
+        current = payload.get("current")
+        if not current:
+            raise ValueError("No current weather data")
         
-        if "current_weather" in data:
-            current = data["current_weather"]
-            location_name = fetch_location_name(lat, lon)
-            advice = advise_for_weather(current["weathercode"], current["temperature"])
-            
-            data["location_name"] = location_name
-            data["weather_description"] = WEATHER_CODES.get(current["weathercode"], "Unknown")
-            data["advice"] = advice
+        code = int(current.get("weather_code", 0))
+        condition = WEATHER_CODES.get(code, "Unknown conditions")
+        location_name = fetch_location_name(lat, lon)
+        temp = current.get("temperature_2m", 0.0)
         
-        return jsonify(data)
+        # Parse location name
+        location_parts = location_name.split(", ")
+        location_obj = {
+            "name": location_parts[0] if len(location_parts) > 0 else "Unknown",
+            "region": location_parts[1] if len(location_parts) > 1 else "",
+            "country": location_parts[2] if len(location_parts) > 2 else location_parts[-1] if location_parts else "",
+            "latitude": lat,
+            "longitude": lon
+        }
+        
+        return jsonify({
+            "location": location_obj,
+            "current": {
+                "temperature": current.get("temperature_2m"),
+                "apparent_temperature": current.get("apparent_temperature"),
+                "humidity": current.get("relative_humidity_2m"),
+                "wind_speed": current.get("wind_speed_10m"),
+                "condition_code": code,
+                "condition": condition,
+                "time": current.get("time")
+            },
+            "advice": advise_for_weather(code, temp)
+        })
     except Exception as e:
         print(f"Weather error: {e}", file=sys.stderr)
         return jsonify({"error": str(e)}), 500

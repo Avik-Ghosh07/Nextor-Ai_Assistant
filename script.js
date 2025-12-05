@@ -451,6 +451,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function fetchWeather(lat, lon) {
         const params = new URLSearchParams({ lat, lon });
+        console.log('🌤️ Fetching weather:', `${API_BASE_URL}/api/weather?${params.toString()}`);
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
         
@@ -459,10 +460,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         clearTimeout(timeoutId);
         
+        console.log('🌤️ Weather API response status:', response.status);
+        
         if (!response.ok) {
-            throw new Error('Weather request failed');
+            const errorText = await response.text();
+            console.error('❌ Weather API error:', response.status, errorText);
+            throw new Error(`Weather request failed: ${response.status}`);
         }
-        return response.json();
+        const data = await response.json();
+        console.log('✅ Weather data received:', data);
+        return data;
     }
 
     function renderWeather(data) {
@@ -595,7 +602,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 2000); // Reduced to 2s
-            const response = await fetch(`${API_BASE_URL}/health`, {
+            const response = await fetch(`${API_BASE_URL}/api/health`, {
                 method: 'GET',
                 signal: controller.signal,
                 cache: 'no-cache'
@@ -622,6 +629,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 message,
                 history: conversationHistory.slice(-8).map(({ role, text }) => ({ role, text }))
             };
+            console.log('📤 Sending to chat API:', `${API_BASE_URL}/api/chat`, payload);
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
             
@@ -633,15 +641,20 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             clearTimeout(timeoutId);
             
+            console.log('📥 Chat API response status:', response.status);
+            
             if (!response.ok) {
+                const errorText = await response.text();
+                console.error('❌ Chat API error:', response.status, errorText);
                 backendAvailable = false;
-                throw new Error('Chat service unavailable');
+                throw new Error(`Chat service error: ${response.status}`);
             }
             const data = await response.json();
+            console.log('✅ Chat API reply:', data.reply);
             backendAvailable = true;
             return data.reply;
         } catch (error) {
-            console.error('Chat backend error', error);
+            console.error('❌ Chat backend error:', error);
             backendAvailable = false;
             return null;
         }

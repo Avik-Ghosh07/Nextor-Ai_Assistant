@@ -1,6 +1,7 @@
 from http.server import BaseHTTPRequestHandler
 import json
 import requests
+import sys
 from urllib.parse import parse_qs, urlparse
 
 WEATHER_API_URL = "https://api.open-meteo.com/v1/forecast"
@@ -68,6 +69,7 @@ class handler(BaseHTTPRequestHandler):
         lon = params.get('lon', [None])[0]
         
         if not lat or not lon:
+            print(f"Weather error: Missing lat/lon parameters", file=sys.stderr)
             self.send_response(400)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
@@ -77,6 +79,7 @@ class handler(BaseHTTPRequestHandler):
         
         try:
             lat_f, lon_f = float(lat), float(lon)
+            print(f"Fetching weather for lat={lat_f}, lon={lon_f}", file=sys.stderr)
             
             # Fetch weather data
             resp = requests.get(WEATHER_API_URL, params={
@@ -87,6 +90,7 @@ class handler(BaseHTTPRequestHandler):
             }, timeout=15)
             resp.raise_for_status()
             weather_data = resp.json()
+            print(f"Weather API response received", file=sys.stderr)
             
             current = weather_data.get("current", {})
             if not current:
@@ -123,8 +127,10 @@ class handler(BaseHTTPRequestHandler):
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
             self.wfile.write(json.dumps(result).encode())
+            print(f"Weather data sent successfully", file=sys.stderr)
             
         except Exception as e:
+            print(f"Weather error: {e}", file=sys.stderr)
             self.send_response(502)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')

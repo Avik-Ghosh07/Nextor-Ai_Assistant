@@ -4,28 +4,35 @@ import random
 import re
 import os
 import datetime as dt
+import sys
 
 # Import Gemini AI (optional dependency)
 try:
     import google.generativeai as genai
     GEMINI_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     GEMINI_AVAILABLE = False
+    print(f"Warning: google-generativeai not available: {e}", file=sys.stderr)
 
 # Configure Gemini AI if API key is available
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 gemini_model = None
 
+print(f"GEMINI_API_KEY present: {bool(GEMINI_API_KEY)}", file=sys.stderr)
+print(f"GEMINI_AVAILABLE: {GEMINI_AVAILABLE}", file=sys.stderr)
+
 if GEMINI_AVAILABLE and GEMINI_API_KEY:
     try:
         genai.configure(api_key=GEMINI_API_KEY)
         gemini_model = genai.GenerativeModel('gemini-2.0-flash')
-    except Exception:
-        pass
+        print("✓ Gemini model initialized successfully", file=sys.stderr)
+    except Exception as e:
+        print(f"✗ Gemini initialization failed: {e}", file=sys.stderr)
 
 def get_gemini_reply(message, history):
     """Get AI response from Gemini. Returns None if unavailable or fails."""
     if not gemini_model:
+        print(f"Gemini not available - model: {gemini_model}, available: {GEMINI_AVAILABLE}, key: {bool(GEMINI_API_KEY)}", file=sys.stderr)
         return None
     
     try:

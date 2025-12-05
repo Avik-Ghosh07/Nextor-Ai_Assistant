@@ -187,3 +187,191 @@
 #listening-label-desktop .listening-pulse {
     animation: none;
 }
+
+/* ===========================
+   RESPONSIVE DESIGN
+   =========================== */
+
+/* Mobile First - 375px to 639px */
+@media (max-width: 639px) {
+    body {
+        font-size: 14px;
+    }
+    
+    /* Container spacing */
+    main {
+        padding: 0.75rem;
+    }
+    
+    /* Glass panels */
+    .glass-effect {
+        padding: 1rem !important;
+        border-radius: 1rem !important;
+    }
+    
+    /* Chat messages */
+    #chat-messages {
+        max-height: 300px !important;
+        padding: 0.75rem !important;
+    }
+    
+    #chat-messages > div {
+        font-size: 0.875rem;
+    }
+    
+    /* Chat input */
+    #chat-input {
+        font-size: 14px;
+        padding: 0.75rem !important;
+    }
+    
+    #send-chat {
+        padding: 0.75rem 1rem !important;
+    }
+    
+    /* Weather content */
+    #weather-content {
+        font-size: 0.875rem;
+    }
+    
+    /* Reminders */
+    #reminders-list {
+        max-height: 250px !important;
+    }
+    
+    /* Buttons */
+    button {
+        font-size: 0.875rem;
+    }
+    
+    /* Section titles */
+    h2 {
+        font-size: 1.125rem !important;
+    }
+}
+
+/* Small tablets - 640px to 767px */
+@media (min-width: 640px) and (max-width: 767px) {
+    main {
+        padding: 1rem;
+    }
+    
+    .glass-effect {
+        padding: 1.25rem !important;
+    }
+    
+    #chat-messages {
+        max-height: 350px !important;
+    }
+}
+
+/* Tablets - 768px to 1023px */
+@media (min-width: 768px) and (max-width: 1023px) {
+    main {
+        max-width: 90%;
+        padding: 1.5rem;
+    }
+    
+    .glass-effect {
+        padding: 1.5rem !important;
+    }
+    
+    #chat-messages {
+        max-height: 400px !important;
+    }
+    
+    /* Two column grid for panels */
+    section > div:last-child {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+    }
+    
+    /* Chat spans full width */
+    section > div:last-child > div:nth-child(2) {
+        grid-column: 1 / -1;
+    }
+}
+
+/* Desktop - 1024px to 1439px */
+@media (min-width: 1024px) and (max-width: 1439px) {
+    main {
+        max-width: 1200px;
+        padding: 2rem;
+    }
+    
+    #chat-messages {
+        max-height: 450px !important;
+    }
+    
+    /* Grid layout */
+    section > div:last-child {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2rem;
+    }
+}
+
+/* Large Desktop - 1440px and above */
+@media (min-width: 1440px) {
+    main {
+        max-width: 1400px;
+        padding: 2.5rem;
+    }
+    
+    #chat-messages {
+        max-height: 500px !important;
+    }
+    
+    /* 3 column grid for optimal space */
+    section > div:last-child {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 2rem;
+    }
+    
+    /* Weather spans 2 columns */
+    section > div:last-child > div:first-child {
+        grid-column: span 2;
+    }
+}
+
+/* ===========================
+   CHAT SPECIFIC RESPONSIVE
+   =========================== */
+
+/* Chat message bubbles */
+#chat-messages > div > div {
+    max-width: 85%;
+    word-break: break-word;
+}
+
+@media (min-width: 640px) {
+    #chat-messages > div > div {
+        max-width: 80%;
+    }
+}
+
+@media (min-width: 1024px) {
+    #chat-messages > div > div {
+        max-width: 75%;
+    }
+}
+
+/* Chat input container */
+@media (max-width: 375px) {
+    #send-chat {
+        padding: 0.75rem 0.875rem !important;
+    }
+    
+    #send-chat i {
+        font-size: 0.875rem;
+    }
+}
+
+/* Scrollbar width adjustment */
+@media (max-width: 639px) {
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+    }
+}

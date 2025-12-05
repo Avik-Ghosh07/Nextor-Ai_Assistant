@@ -9,7 +9,7 @@ __pycache__/
 .Python
 
 # Development server (not needed on Vercel)
-server.py
+server_local.py
 run.bat
 
 # Git

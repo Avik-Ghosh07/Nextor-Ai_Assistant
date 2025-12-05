@@ -73,7 +73,6 @@ def get_fallback_reply(message):
     return "I'm here to help! Ask me anything."
 
 @app.route('/health')
-@app.route('/')
 def health():
     return jsonify({
         "status": "ok",

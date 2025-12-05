@@ -248,3 +248,6 @@ def weather():
     except Exception as e:
         print(f"Weather error: {e}", file=sys.stderr)
         return jsonify({"error": str(e)}), 500
+
+# Vercel serverless function handler
+handler = app

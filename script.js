@@ -344,6 +344,22 @@ document.addEventListener('DOMContentLoaded', () => {
         activeTimeouts.set(reminder.id, timeoutId);
     }
 
+    // Check reminders periodically (every 30 seconds) to handle mobile background states
+    function startReminderWatcher() {
+        setInterval(() => {
+            const now = new Date().getTime();
+            reminders.forEach((reminder, index) => {
+                if (reminder.scheduledTime && reminder.scheduledTime <= now && reminder.scheduledTime > (now - 60000)) {
+                    // Reminder is due (within last minute)
+                    showNotification('Nextor Reminder', reminder.text);
+                    reminders.splice(index, 1);
+                    saveReminders();
+                    renderReminders();
+                }
+            });
+        }, 30000); // Check every 30 seconds
+    }
+
     function cleanupExpiredReminders() {
         const now = new Date().getTime();
         const before = reminders.length;
@@ -437,14 +453,65 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getCurrentPosition() {
         return new Promise((resolve, reject) => {
+            // Check if geolocation is supported
             if (!('geolocation' in navigator)) {
-                reject(new Error('Geolocation not supported'));
+                reject(new Error('Geolocation not supported by your browser'));
                 return;
             }
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 0
+
+            // Check if we're on HTTPS (required for geolocation on mobile)
+            const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            if (!isSecure) {
+                reject(new Error('Geolocation requires HTTPS connection. Please access this site via HTTPS.'));
+                return;
+            }
+
+            // Request permission explicitly on mobile
+            navigator.permissions.query({ name: 'geolocation' }).then(result => {
+                if (result.state === 'denied') {
+                    reject(new Error('Location permission denied. Please enable location access in your browser settings.'));
+                    return;
+                }
+
+                // Get current position with mobile-optimized settings
+                navigator.geolocation.getCurrentPosition(
+                    resolve,
+                    (error) => {
+                        let errorMessage = 'Unable to get your location. ';
+                        switch(error.code) {
+                            case error.PERMISSION_DENIED:
+                                errorMessage += 'Location permission denied. Enable location in Settings > Privacy > Location Services.';
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                errorMessage += 'Location information unavailable. Make sure GPS/Location services are enabled on your device.';
+                                break;
+                            case error.TIMEOUT:
+                                errorMessage += 'Location request timed out. Please try again.';
+                                break;
+                            default:
+                                errorMessage += 'An unknown error occurred.';
+                        }
+                        reject(new Error(errorMessage));
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 15000, // Increased timeout for mobile
+                        maximumAge: 30000 // Allow cached position up to 30s old
+                    }
+                );
+            }).catch(() => {
+                // Fallback if permissions API not supported
+                navigator.geolocation.getCurrentPosition(
+                    resolve,
+                    (error) => {
+                        reject(new Error('Location access failed. Please check your device settings.'));
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 15000,
+                        maximumAge: 30000
+                    }
+                );
             });
         });
     }
@@ -574,17 +641,21 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error('Weather error', error);
-            const denied = typeof error === 'object' && error !== null && 'code' in error && error.code === 1;
-            const isNetworkError = error.name === 'AbortError' || error.message.includes('fetch') || error.message.includes('Failed to fetch');
+            const errorMsg = error.message || String(error);
+            const denied = errorMsg.includes('denied') || errorMsg.includes('PERMISSION_DENIED');
+            const httpsRequired = errorMsg.includes('HTTPS');
+            const isNetworkError = error.name === 'AbortError' || errorMsg.includes('fetch') || errorMsg.includes('Failed to fetch');
             
             let message;
-            if (denied) {
-                message = 'Location access denied. Please enable location permissions in your browser settings to get live weather updates.';
+            if (httpsRequired) {
+                message = '🔒 Location requires HTTPS. Please access this site via https:// instead of http://';
+            } else if (denied) {
+                message = '📍 Location access denied. On mobile: Settings > Safari/Chrome > Location > Allow. Then refresh the page.';
             } else if (isNetworkError) {
-                message = 'Weather service is currently offline. The backend server may not be running. Check the terminal for errors.';
+                message = 'Weather service is currently offline. The backend server may not be running.';
                 backendAvailable = false;
             } else {
-                message = 'Unable to fetch weather data right now. This could be a temporary issue. Please try again in a moment.';
+                message = errorMsg || 'Unable to fetch weather data. Please try again.';
             }
             
             showWeatherStatus(`⚠️ ${message}`);
@@ -1330,6 +1401,9 @@ document.addEventListener('DOMContentLoaded', () => {
             scheduleReminder(reminder, idx);
         }
     });
+
+    // Start background reminder watcher for mobile devices
+    startReminderWatcher();
 
     // Check backend availability in background and update UI
     checkBackendAvailability().then(available => {

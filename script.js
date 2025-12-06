@@ -358,8 +358,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Visual alert in page
         const alertDiv = document.createElement('div');
-        alertDiv.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:9999;background:#10b981;color:white;padding:16px 24px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.3);font-weight:600;max-width:90%;text-align:center;animation:slideDown 0.3s ease-out;';
-        alertDiv.innerHTML = `🔔 <strong>${title}</strong><br>${body}`;
+        alertDiv.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:9999;background:#f59e0b;color:white;padding:16px 24px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.3);font-weight:600;max-width:90%;text-align:center;animation:slideDown 0.3s ease-out;';
+        alertDiv.innerHTML = `⏰ <strong>Reminder for:</strong><br>${body}`;
         document.body.appendChild(alertDiv);
         
         // Remove after 5 seconds

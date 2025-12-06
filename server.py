@@ -410,17 +410,20 @@ def health() -> Any:
 
 
 if __name__ == "__main__":
+    # Get port from environment variable (for Render, Heroku, etc.) or default to 5000
+    port = int(os.environ.get("PORT", 5000))
+    
     # Use Waitress for production-grade WSGI server
     try:
         from waitress import serve
         print("🚀 Starting Nextor AI with Waitress server...")
-        print("📡 Server running at http://127.0.0.1:5000")
-        print("🌐 Also accessible at http://0.0.0.0:5000")
+        print(f"📡 Server running on port {port}")
+        print("🌐 Also accessible at http://0.0.0.0:" + str(port))
         print("Press Ctrl+C to stop the server")
-        serve(app, host="0.0.0.0", port=5000, threads=6)
+        serve(app, host="0.0.0.0", port=port, threads=6)
     except ImportError:
         print("⚠️  Waitress not installed. Using Flask development server...")
         print("💡 Install Waitress for better performance: pip install waitress")
-        app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False, threaded=True)
+        app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False, threaded=True)
 
 

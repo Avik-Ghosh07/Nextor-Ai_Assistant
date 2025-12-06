@@ -521,6 +521,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getCurrentPosition() {
         return new Promise((resolve, reject) => {
+            console.log('🌍 Requesting location...');
+            
             // Check if geolocation is supported
             if (!('geolocation' in navigator)) {
                 reject(new Error('Geolocation not supported by your browser'));
@@ -529,76 +531,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Check if we're on HTTPS (required for geolocation on mobile)
             const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            console.log('🔒 Secure context:', isSecure, 'Protocol:', window.location.protocol);
+            
             if (!isSecure) {
                 reject(new Error('Geolocation requires HTTPS connection. Please access this site via HTTPS.'));
                 return;
             }
 
-            // Request permission explicitly on mobile
-            navigator.permissions.query({ name: 'geolocation' }).then(result => {
-                if (result.state === 'denied') {
+            // Try to get location directly (works better on mobile)
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    console.log('✅ Location acquired:', position.coords.latitude, position.coords.longitude);
+                    resolve(position);
+                },
+                (error) => {
+                    console.error('❌ Geolocation error:', error.code, error.message);
                     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
                     const isAndroid = /Android/.test(navigator.userAgent);
-                    let errorMsg = 'LOCATION_DENIED: ';
-                    if (isIOS) {
-                        errorMsg += 'Go to Settings > Safari > Location > Allow or Settings > Privacy & Security > Location Services > Safari > While Using';
-                    } else if (isAndroid) {
-                        errorMsg += 'Go to Settings > Apps > Chrome/Browser > Permissions > Location > Allow';
-                    } else {
-                        errorMsg += 'Enable location in your browser settings';
+                    let errorMessage = 'LOCATION_ERROR: ';
+                    
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            if (isIOS) {
+                                errorMessage += 'iPhone/iPad: Settings > Safari > Location > While Using App. Then close and reopen browser.';
+                            } else if (isAndroid) {
+                                errorMessage += 'Android: Settings > Site Settings > Location > Allow. Enable device GPS in Quick Settings.';
+                            } else {
+                                errorMessage += 'Click "Allow" when browser asks for location permission. Then refresh.';
+                            }
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage += 'GPS signal unavailable. Move to an open area or enable High Accuracy mode in Settings.';
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage += 'Location request timed out. Check GPS is enabled and try again.';
+                            break;
+                        default:
+                            errorMessage += 'Unknown error (code: ' + error.code + '). Restart your browser and try again.';
                     }
-                    reject(new Error(errorMsg));
-                    return;
+                    reject(new Error(errorMessage));
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 15000, // Increased timeout for mobile
+                    maximumAge: 30000 // Allow cached position up to 30s old
                 }
-
-                // Get current position with mobile-optimized settings
-                navigator.geolocation.getCurrentPosition(
-                    resolve,
-                    (error) => {
-                        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-                        const isAndroid = /Android/.test(navigator.userAgent);
-                        let errorMessage = 'LOCATION_ERROR: ';
-                        switch(error.code) {
-                            case error.PERMISSION_DENIED:
-                                if (isIOS) {
-                                    errorMessage += 'iPhone/iPad: Settings > Safari > Location > While Using App. Then close and reopen browser.';
-                                } else if (isAndroid) {
-                                    errorMessage += 'Android: Settings > Site Settings > Location > Allow. Enable device GPS in Quick Settings.';
-                                } else {
-                                    errorMessage += 'Enable location in browser settings and refresh page.';
-                                }
-                                break;
-                            case error.POSITION_UNAVAILABLE:
-                                errorMessage += 'GPS signal unavailable. Move to an open area or enable High Accuracy mode in Settings.';
-                                break;
-                            case error.TIMEOUT:
-                                errorMessage += 'Location request timed out. Check GPS is enabled and try again.';
-                                break;
-                            default:
-                                errorMessage += 'Unknown error. Restart your browser and try again.';
-                        }
-                        reject(new Error(errorMessage));
-                    },
-                    {
-                        enableHighAccuracy: true,
-                        timeout: 15000, // Increased timeout for mobile
-                        maximumAge: 30000 // Allow cached position up to 30s old
-                    }
-                );
-            }).catch(() => {
-                // Fallback if permissions API not supported
-                navigator.geolocation.getCurrentPosition(
-                    resolve,
-                    (error) => {
-                        reject(new Error('Location access failed. Please check your device settings.'));
-                    },
-                    {
-                        enableHighAccuracy: true,
-                        timeout: 15000,
-                        maximumAge: 30000
-                    }
-                );
-            });
+            );
         });
     }
 

@@ -4,7 +4,7 @@ import datetime as dt
 import os
 import random
 import re
-from typing import Any, Dict, List
+from typing import Dict, List
 
 import requests
 from flask import Flask, jsonify, request, send_from_directory
@@ -76,7 +76,7 @@ WEATHER_CODES = {
 }
 
 
-def _safe_float(value: Any) -> float | None:
+def _safe_float(value) -> float | None:
     try:
         return float(value)
     except (TypeError, ValueError):
@@ -131,12 +131,12 @@ def _advise_for_weather(temp_c: float, condition_code: int) -> str:
 
 
 @app.route("/")
-def index() -> Any:
+def index():
     return send_from_directory(app.static_folder, "index.html")
 
 
 @app.route("/api/weather")
-def get_weather() -> Any:
+def get_weather():
     lat = _safe_float(request.args.get("lat"))
     lon = _safe_float(request.args.get("lon"))
 
@@ -388,7 +388,7 @@ def _choose_reply(message: str, history: List[Dict[str, str]]) -> str:
 
 
 @app.post("/api/chat")
-def chat() -> Any:
+def chat():
     data = request.get_json(silent=True) or {}
     message = _clean_message(str(data.get("message", "")))
     history = data.get("history") or []
@@ -401,7 +401,7 @@ def chat() -> Any:
 
 
 @app.get("/api/health")
-def health() -> Any:
+def health():
     return jsonify({
         "status": "healthy",
         "gemini_available": gemini_model is not None,

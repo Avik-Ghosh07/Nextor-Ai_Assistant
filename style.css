@@ -5,6 +5,18 @@
     font-family: 'Inter', sans-serif; 
 }
 
+/* Ensure proper viewport handling */
+html {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+}
+
+body {
+    overflow-x: hidden;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+}
+
 /* ===========================
    ANIMATIONS
    =========================== */
@@ -308,8 +320,43 @@
    RESPONSIVE DESIGN
    =========================== */
 
+/* Extra Small Devices - up to 374px (Small phones) */
+@media (max-width: 374px) {
+    body {
+        font-size: 13px;
+    }
+    
+    main {
+        padding: 0.5rem;
+    }
+    
+    .glass-effect {
+        padding: 0.75rem !important;
+        border-radius: 0.75rem !important;
+    }
+    
+    #chat-messages {
+        max-height: 250px !important;
+        padding: 0.5rem !important;
+    }
+    
+    /* Minimum touch target size */
+    button, .chip, .quick-cmd-btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    h1 {
+        font-size: 1.25rem !important;
+    }
+    
+    h2 {
+        font-size: 1rem !important;
+    }
+}
+
 /* Mobile First - 375px to 639px */
-@media (max-width: 639px) {
+@media (min-width: 375px) and (max-width: 639px) {
     body {
         font-size: 14px;
     }
@@ -355,9 +402,9 @@
         max-height: 250px !important;
     }
     
-    /* Buttons */
-    button {
-        font-size: 0.875rem;
+    /* Touch targets */
+    button, .chip {
+        min-height: 44px;
     }
     
     /* Section titles */
@@ -428,8 +475,8 @@
     }
 }
 
-/* Large Desktop - 1440px and above */
-@media (min-width: 1440px) {
+/* Large Desktop - 1440px to 1919px */
+@media (min-width: 1440px) and (max-width: 1919px) {
     main {
         max-width: 1400px;
         padding: 2.5rem;
@@ -448,6 +495,69 @@
     /* Conversation log spacing */
     #conversation-log {
         max-height: 500px;
+    }
+}
+
+/* Ultra-Wide / 4K - 1920px and above */
+@media (min-width: 1920px) {
+    main {
+        max-width: 1600px;
+        padding: 3rem;
+    }
+    
+    .glass-effect {
+        padding: 2.5rem !important;
+    }
+    
+    section > div:first-child {
+        gap: 3rem;
+    }
+    
+    /* Better spacing for large screens */
+    #chat-messages {
+        min-height: 600px !important;
+    }
+    
+    #conversation-log {
+        max-height: 600px;
+    }
+}
+
+/* Landscape orientation for mobile/small tablets */
+@media (max-width: 896px) and (orientation: landscape) {
+    main {
+        padding: 0.5rem 1rem;
+    }
+    
+    #chat-messages {
+        max-height: 200px !important;
+    }
+    
+    .glass-effect {
+        padding: 0.75rem !important;
+    }
+    
+    /* Compact header for landscape */
+    header .glass-effect {
+        padding: 0.75rem 1rem !important;
+    }
+}
+
+/* Tablet landscape optimization */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
+    main {
+        max-width: 95%;
+    }
+    
+    /* Optimize for horizontal space */
+    section > div:last-child {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+    }
+    
+    #chat-messages {
+        max-height: 350px !important;
     }
 }
 
@@ -488,5 +598,52 @@
 @media (max-width: 639px) {
     .custom-scrollbar::-webkit-scrollbar {
         width: 4px;
+    }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+    /* Increase touch targets */
+    button, a, .chip, .quick-cmd-btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    /* Remove hover effects on touch devices */
+    .chip:hover,
+    .quick-cmd-btn:hover,
+    button:hover {
+        transform: none;
+    }
+    
+    /* Better tap feedback */
+    button:active,
+    .chip:active,
+    .quick-cmd-btn:active {
+        transform: scale(0.95);
+        opacity: 0.8;
+    }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    /* Sharper borders */
+    .glass-effect {
+        border-width: 0.5px;
+    }
+}
+
+/* Print styles */
+@media print {
+    .glass-effect {
+        background: white !important;
+        color: black !important;
+        border: 1px solid #ccc !important;
+    }
+    
+    #status-indicator,
+    #backend-status,
+    button {
+        display: none !important;
     }
 }

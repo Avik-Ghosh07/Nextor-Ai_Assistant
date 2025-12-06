@@ -537,7 +537,17 @@ document.addEventListener('DOMContentLoaded', () => {
             // Request permission explicitly on mobile
             navigator.permissions.query({ name: 'geolocation' }).then(result => {
                 if (result.state === 'denied') {
-                    reject(new Error('Location permission denied. Please enable location access in your browser settings.'));
+                    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                    const isAndroid = /Android/.test(navigator.userAgent);
+                    let errorMsg = 'LOCATION_DENIED: ';
+                    if (isIOS) {
+                        errorMsg += 'Go to Settings > Safari > Location > Allow or Settings > Privacy & Security > Location Services > Safari > While Using';
+                    } else if (isAndroid) {
+                        errorMsg += 'Go to Settings > Apps > Chrome/Browser > Permissions > Location > Allow';
+                    } else {
+                        errorMsg += 'Enable location in your browser settings';
+                    }
+                    reject(new Error(errorMsg));
                     return;
                 }
 
@@ -545,19 +555,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 navigator.geolocation.getCurrentPosition(
                     resolve,
                     (error) => {
-                        let errorMessage = 'Unable to get your location. ';
+                        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                        const isAndroid = /Android/.test(navigator.userAgent);
+                        let errorMessage = 'LOCATION_ERROR: ';
                         switch(error.code) {
                             case error.PERMISSION_DENIED:
-                                errorMessage += 'Location permission denied. Enable location in Settings > Privacy > Location Services.';
+                                if (isIOS) {
+                                    errorMessage += 'iPhone/iPad: Settings > Safari > Location > While Using App. Then close and reopen browser.';
+                                } else if (isAndroid) {
+                                    errorMessage += 'Android: Settings > Site Settings > Location > Allow. Enable device GPS in Quick Settings.';
+                                } else {
+                                    errorMessage += 'Enable location in browser settings and refresh page.';
+                                }
                                 break;
                             case error.POSITION_UNAVAILABLE:
-                                errorMessage += 'Location information unavailable. Make sure GPS/Location services are enabled on your device.';
+                                errorMessage += 'GPS signal unavailable. Move to an open area or enable High Accuracy mode in Settings.';
                                 break;
                             case error.TIMEOUT:
-                                errorMessage += 'Location request timed out. Please try again.';
+                                errorMessage += 'Location request timed out. Check GPS is enabled and try again.';
                                 break;
                             default:
-                                errorMessage += 'An unknown error occurred.';
+                                errorMessage += 'Unknown error. Restart your browser and try again.';
                         }
                         reject(new Error(errorMessage));
                     },
@@ -710,23 +728,37 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Weather error', error);
             const errorMsg = error.message || String(error);
-            const denied = errorMsg.includes('denied') || errorMsg.includes('PERMISSION_DENIED');
+            const denied = errorMsg.includes('DENIED') || errorMsg.includes('denied');
             const httpsRequired = errorMsg.includes('HTTPS');
             const isNetworkError = error.name === 'AbortError' || errorMsg.includes('fetch') || errorMsg.includes('Failed to fetch');
             
             let message;
+            let htmlMessage;
+            
             if (httpsRequired) {
-                message = '🔒 Location requires HTTPS. Please access this site via https:// instead of http://';
+                message = 'Location requires HTTPS. Please use https:// to access this site.';
+                htmlMessage = `<div class="text-amber-400 font-semibold mb-2">🔒 HTTPS Required</div><div class="text-sm">Location access needs a secure connection. Use <strong>https://</strong> instead of http://</div>`;
             } else if (denied) {
-                message = '📍 Location access denied. On mobile: Settings > Safari/Chrome > Location > Allow. Then refresh the page.';
+                // Extract the detailed instructions from error message
+                const instructionMatch = errorMsg.match(/LOCATION_(?:DENIED|ERROR):\s*(.+)/);
+                const instructions = instructionMatch ? instructionMatch[1] : 'Enable location in browser settings';
+                message = `Location blocked. ${instructions}`;
+                htmlMessage = `<div class="text-amber-400 font-semibold mb-2">📍 Location Access Blocked</div><div class="text-sm text-left" style="line-height: 1.6;">${instructions}<br><br><strong>Then:</strong> Close browser completely and reopen this page.</div>`;
             } else if (isNetworkError) {
                 message = 'Weather service is currently offline. The backend server may not be running.';
+                htmlMessage = `<div class="text-red-400 font-semibold mb-2">⚠️ Service Offline</div><div class="text-sm">Backend server not running. Check terminal for errors.</div>`;
                 backendAvailable = false;
             } else {
                 message = errorMsg || 'Unable to fetch weather data. Please try again.';
+                htmlMessage = `<div class="text-slate-300 text-sm">${message}</div>`;
             }
             
-            showWeatherStatus(`⚠️ ${message}`);
+            if (weatherContent && htmlMessage) {
+                weatherContent.innerHTML = htmlMessage;
+            } else {
+                showWeatherStatus(`⚠️ ${message}`);
+            }
+            
             if (speakResponse) {
                 speak(message);
             }

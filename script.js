@@ -296,19 +296,83 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function requestNotificationPermission() {
-        if ('Notification' in window && Notification.permission === 'default') {
-            await Notification.requestPermission();
+        if ('Notification' in window) {
+            if (Notification.permission === 'default') {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    console.log('✅ Notification permission granted');
+                } else {
+                    console.warn('⚠️ Notification permission denied');
+                    alert('Please enable notifications to receive reminders!');
+                }
+            } else if (Notification.permission === 'denied') {
+                alert('Notifications are blocked. Please enable them in browser settings: Settings > Site Settings > Notifications');
+            }
+        } else {
+            console.warn('⚠️ Notifications not supported on this device');
         }
     }
 
     function showNotification(title, body) {
+        console.log('🔔 Showing notification:', title, body);
+        
+        // Try browser notification
         if ('Notification' in window && Notification.permission === 'granted') {
-            const notification = new Notification(title, {
-                body,
-                icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="%2310b981"/><text x="50" y="60" text-anchor="middle" font-family="Arial" font-size="40" fill="white">N</text></svg>'
-            });
+            try {
+                const notification = new Notification(title, {
+                    body,
+                    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="%2310b981"/><text x="50" y="60" text-anchor="middle" font-family="Arial" font-size="40" fill="white">N</text></svg>',
+                    badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="%2310b981"/></svg>',
+                    vibrate: [200, 100, 200], // Vibration pattern
+                    requireInteraction: true, // Keep notification visible
+                    tag: 'nextor-reminder' // Replace old notifications
+                });
+                
+                notification.onclick = () => {
+                    window.focus();
+                    notification.close();
+                };
+                
+                setTimeout(() => notification.close(), 10000);
+            } catch (err) {
+                console.error('Notification error:', err);
+            }
+        } else {
+            console.warn('⚠️ Notifications not available:', 
+                'Notification' in window ? `Permission: ${Notification.permission}` : 'Not supported');
+        }
+        
+        // Vibrate device if supported
+        if ('vibrate' in navigator) {
+            navigator.vibrate([200, 100, 200, 100, 200]);
+        }
+        
+        // Play sound alert
+        try {
+            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBjGH0fPTgjMGHm7A7+OZSA0PVqzn77BdGAg+l9n0yXksBSd+zPDajjwKElyx6OyrWBUIQ6Hn88BwJAU1kdXzzn0pBSx6xu/blUELElyx6OyrWBUIQ6Hn88BwJAU1kdXzzn0pBSx6xu/blUELE1mw5PDTqVQVCEOh5/PAcCQFNZHV885/KQUre8bv25VBC');
+            audio.volume = 0.5;
+            audio.play().catch(() => console.log('Audio play blocked'));
+        } catch (err) {
+            console.log('Audio not available');
+        }
+        
+        // Visual alert in page
+        const alertDiv = document.createElement('div');
+        alertDiv.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:9999;background:#10b981;color:white;padding:16px 24px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.3);font-weight:600;max-width:90%;text-align:center;animation:slideDown 0.3s ease-out;';
+        alertDiv.innerHTML = `🔔 <strong>${title}</strong><br>${body}`;
+        document.body.appendChild(alertDiv);
+        
+        // Remove after 5 seconds
+        setTimeout(() => {
+            alertDiv.style.animation = 'slideUp 0.3s ease-out';
+            setTimeout(() => alertDiv.remove(), 300);
+        }, 5000);
+        
+        // Try to speak the reminder
+        try {
             speak(`Reminder: ${body}`);
-            setTimeout(() => notification.close(), 5000);
+        } catch (err) {
+            console.log('Speech synthesis blocked');
         }
     }
 
@@ -344,20 +408,24 @@ document.addEventListener('DOMContentLoaded', () => {
         activeTimeouts.set(reminder.id, timeoutId);
     }
 
-    // Check reminders periodically (every 30 seconds) to handle mobile background states
+    // Check reminders periodically (every 10 seconds) to handle mobile background states
     function startReminderWatcher() {
+        console.log('🔔 Starting reminder watcher');
         setInterval(() => {
             const now = new Date().getTime();
-            reminders.forEach((reminder, index) => {
-                if (reminder.scheduledTime && reminder.scheduledTime <= now && reminder.scheduledTime > (now - 60000)) {
-                    // Reminder is due (within last minute)
-                    showNotification('Nextor Reminder', reminder.text);
-                    reminders.splice(index, 1);
+            // Iterate backwards to safely remove items
+            for (let i = reminders.length - 1; i >= 0; i--) {
+                const reminder = reminders[i];
+                if (reminder.scheduledTime && reminder.scheduledTime <= now && reminder.scheduledTime > (now - 120000)) {
+                    // Reminder is due (within last 2 minutes)
+                    console.log('⏰ Reminder triggered:', reminder.text);
+                    showNotification('⏰ Nextor Reminder', reminder.text);
+                    reminders.splice(i, 1);
                     saveReminders();
                     renderReminders();
                 }
-            });
-        }, 30000); // Check every 30 seconds
+            }
+        }, 10000); // Check every 10 seconds for better responsiveness
     }
 
     function cleanupExpiredReminders() {

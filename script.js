@@ -1136,16 +1136,46 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
-        if (!handled && command.startsWith('open ')) {
-            const siteName = command.substring(5).trim().toLowerCase();
-            const url = websiteMap[siteName] || (siteName.includes('.') ? (siteName.startsWith('http') ? siteName : `https://${siteName}`) : `https://www.${siteName}.com`);
-            openWebsite(url, `Opening ${siteName}...`);
-            handled = true;
-        } else if (command.startsWith('search for')) {
-            const query = command.substring('search for'.length).trim();
-            openWebsite(`https://www.google.com/search?q=${encodeURIComponent(query)}`, `Searching Google for ${query}`);
-            handled = true;
-        } else if (command.includes('weather')) {
+        // Check if user wants to open a website
+        if (!handled && (command.includes('open') || command.includes('launch') || command.includes('go to'))) {
+            // Try to extract site name after "open", "launch", or "go to"
+            let siteName = '';
+            if (command.includes('open')) {
+                siteName = command.substring(command.indexOf('open') + 4).trim();
+            } else if (command.includes('launch')) {
+                siteName = command.substring(command.indexOf('launch') + 6).trim();
+            } else if (command.includes('go to')) {
+                siteName = command.substring(command.indexOf('go to') + 5).trim();
+            }
+            
+            // Clean up the site name
+            siteName = siteName.toLowerCase().replace(/[,\.!\?]/g, '').trim();
+            
+            // Check if it's a known website
+            if (siteName && siteName.length > 0) {
+                const url = websiteMap[siteName] || (siteName.includes('.') ? (siteName.startsWith('http') ? siteName : `https://${siteName}`) : `https://www.${siteName}.com`);
+                openWebsite(url, `Opening ${siteName}...`);
+                handled = true;
+            }
+        } 
+        
+        if (!handled && (command.startsWith('search for') || command.includes('google'))) {
+            let query = '';
+            if (command.startsWith('search for')) {
+                query = command.substring('search for'.length).trim();
+            } else if (command.includes('search')) {
+                query = command.substring(command.indexOf('search') + 6).trim();
+            } else if (command.includes('google')) {
+                query = command.replace('google', '').trim();
+            }
+            
+            if (query && query.length > 0) {
+                openWebsite(`https://www.google.com/search?q=${encodeURIComponent(query)}`, `Searching Google for ${query}`);
+                handled = true;
+            }
+        } 
+        
+        if (!handled && command.includes('weather')) {
             await requestWeatherForCurrentLocation({ speakResponse: true });
             handled = true;
         } else if (command.startsWith('remind me to')) {

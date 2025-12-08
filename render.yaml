@@ -2,10 +2,16 @@ services:
   - type: web
     name: nextor-ai-assistant
     runtime: python
+    plan: free  # Change to 'starter' for production with guaranteed uptime
     buildCommand: pip install -r requirements.txt
     startCommand: python server.py
+    healthCheckPath: /api/health
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
       - key: GEMINI_API_KEY
-        sync: false
+        sync: false  # Set manually in Render dashboard
+      - key: ALLOWED_ORIGINS
+        value: "*"  # Update with your production domain(s)
+      - key: RATE_LIMIT
+        value: "60"

@@ -29,6 +29,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const refreshWeatherBtn = document.getElementById('refresh-weather');
     const weatherContent = document.getElementById('weather-content');
 
+    // New feature elements
+    const loginModal = document.getElementById('login-modal');
+    const closeLoginModal = document.getElementById('close-login-modal');
+    const loginUsername = document.getElementById('login-username');
+    const loginPassword = document.getElementById('login-password');
+    const loginSubmitBtn = document.getElementById('login-submit-btn');
+    const userMenuBtnMobile = document.getElementById('user-menu-btn-mobile');
+    const userMenuBtnDesktop = document.getElementById('user-menu-btn-desktop');
+    const userMenuModal = document.getElementById('user-menu-modal');
+    const closeUserMenu = document.getElementById('close-user-menu');
+    const logoutBtn = document.getElementById('logout-btn');
+    const viewHistoryBtn = document.getElementById('view-history-btn');
+    const viewTodosBtn = document.getElementById('view-todos-btn');
+    const userDisplayName = document.getElementById('user-display-name');
+    const currentUsername = document.getElementById('current-username');
+    const todoModal = document.getElementById('todo-modal');
+    const closeTodoModal = document.getElementById('close-todo-modal');
+    const todoTaskInput = document.getElementById('todo-task-input');
+    const todoPriority = document.getElementById('todo-priority');
+    const addTodoBtn = document.getElementById('add-todo-btn');
+    const todoList = document.getElementById('todo-list');
+    const reminderRepeat = document.getElementById('reminder-repeat');
+    const reminderCategory = document.getElementById('reminder-category');
+    const reminderPrioritySelect = document.getElementById('reminder-priority-select');
+
     // --- Speech Recognition & Synthesis ---
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -65,6 +90,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const knowledge = safeGetLocalStorage('nextor_knowledge', '{}');
     let reminders = safeGetLocalStorage('nextor_reminders', '[]');
     const activeTimeouts = new Map();
+
+    // New features state management
+    let currentUser = safeGetLocalStorage('nextor_current_user', 'null');
+    let users = safeGetLocalStorage('nextor_users', '{}');
+    let todos = safeGetLocalStorage('nextor_todos', '[]');
+    
+    // Initialize user system
+    if (!currentUser || currentUser === 'Guest') {
+        currentUser = 'Guest';
+        if (!users['Guest']) {
+            users['Guest'] = { username: 'Guest', history: [], todos: [], reminders: [] };
+            localStorage.setItem('nextor_users', JSON.stringify(users));
+        }
+    }
+
+    // Update UI with current user
+    if (userDisplayName) userDisplayName.textContent = currentUser;
+    if (currentUsername) currentUsername.textContent = currentUser;
 
     // --- UI helpers ---
     function updateStatus(status) {
@@ -456,9 +499,27 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        reminders.forEach((reminder, idx) => {
+        // Sort by priority and time
+        const sortedReminders = [...reminders].sort((a, b) => {
+            const priorityOrder = { high: 0, medium: 1, low: 2 };
+            const priorityDiff = (priorityOrder[a.priority] || 1) - (priorityOrder[b.priority] || 1);
+            if (priorityDiff !== 0) return priorityDiff;
+            return (a.scheduledTime || 0) - (b.scheduledTime || 0);
+        });
+
+        sortedReminders.forEach((reminder) => {
+            const idx = reminders.indexOf(reminder);
             const li = document.createElement('li');
-            li.className = 'glass-effect rounded-xl p-3 border-l-4 border-red-500 flex items-start justify-between gap-3 animate-slide-up';
+            
+            // Priority-based border colors
+            const borderColors = {
+                high: 'border-red-500',
+                medium: 'border-yellow-500',
+                low: 'border-green-500'
+            };
+            const borderColor = borderColors[reminder.priority] || 'border-red-500';
+            
+            li.className = `glass-effect rounded-xl p-3 border-l-4 ${borderColor} flex items-start justify-between gap-3 animate-slide-up`;
 
             let timeDisplay = reminder.time || 'no time';
             if (reminder.scheduledTime) {
@@ -485,12 +546,56 @@ document.addEventListener('DOMContentLoaded', () => {
             taskText.className = 'text-white text-sm font-medium';
             taskText.textContent = reminder.text;
             
-            const timeText = document.createElement('p');
-            timeText.className = 'text-red-400 text-xs mt-1 flex items-center gap-1';
-            timeText.innerHTML = `<i class="fas fa-clock"></i> ${timeDisplay}`;
+            const metaContainer = document.createElement('div');
+            metaContainer.className = 'flex items-center gap-2 mt-1 text-xs flex-wrap';
+            
+            // Time badge
+            const timeBadge = document.createElement('span');
+            const timeColors = {
+                high: 'text-red-400',
+                medium: 'text-yellow-400',
+                low: 'text-green-400'
+            };
+            timeBadge.className = `${timeColors[reminder.priority] || 'text-red-400'} flex items-center gap-1`;
+            timeBadge.innerHTML = `<i class="fas fa-clock"></i> ${timeDisplay}`;
+            metaContainer.appendChild(timeBadge);
+            
+            // Category badge
+            if (reminder.category) {
+                const categoryIcons = {
+                    personal: '👤',
+                    work: '💼',
+                    health: '❤️',
+                    other: '📌'
+                };
+                const categoryBadge = document.createElement('span');
+                categoryBadge.className = 'text-gray-400';
+                categoryBadge.textContent = `${categoryIcons[reminder.category] || '📌'} ${reminder.category}`;
+                metaContainer.appendChild(categoryBadge);
+            }
+            
+            // Repeat badge
+            if (reminder.repeat && reminder.repeat !== 'once') {
+                const repeatBadge = document.createElement('span');
+                repeatBadge.className = 'text-purple-400';
+                repeatBadge.innerHTML = `<i class="fas fa-repeat"></i> ${reminder.repeat}`;
+                metaContainer.appendChild(repeatBadge);
+            }
+            
+            // Priority badge
+            if (reminder.priority) {
+                const priorityIcons = {
+                    high: '🔴',
+                    medium: '🟡',
+                    low: '🟢'
+                };
+                const priorityBadge = document.createElement('span');
+                priorityBadge.textContent = `${priorityIcons[reminder.priority] || '🟡'}`;
+                metaContainer.appendChild(priorityBadge);
+            }
             
             textContainer.appendChild(taskText);
-            textContainer.appendChild(timeText);
+            textContainer.appendChild(metaContainer);
 
             const delBtn = document.createElement('button');
             delBtn.className = 'px-3 py-1.5 rounded-lg bg-red-600/80 hover:bg-red-600 border border-red-500/50 hover:border-red-500 text-white hover:text-white text-xs font-bold transition-all hover:scale-105 flex items-center gap-1';
@@ -501,6 +606,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     activeTimeouts.delete(reminder.id);
                 }
                 reminders.splice(idx, 1);
+                users[currentUser].reminders = reminders;
                 saveReminders();
                 renderReminders();
                 speak('Reminder deleted');
@@ -769,8 +875,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Check backend availability first
         const isAvailable = await checkBackendAvailability();
         if (!isAvailable) {
-            console.warn('Chat backend is offline, skipping AI chat');
-            return null;
+            console.warn('Chat backend is offline, using fallback responses');
+            // Fallback pattern matching for common questions
+            return getOfflineFallbackResponse(message);
         }
 
         try {
@@ -796,7 +903,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const errorText = await response.text();
                 console.error('❌ Chat API error:', response.status, errorText);
                 backendAvailable = false;
-                throw new Error(`Chat service error: ${response.status}`);
+                // Try fallback on error
+                return getOfflineFallbackResponse(message);
             }
             const data = await response.json();
             console.log('✅ Chat API reply:', data.reply);
@@ -805,8 +913,78 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('❌ Chat backend error:', error);
             backendAvailable = false;
-            return null;
+            // Try fallback on error
+            return getOfflineFallbackResponse(message);
         }
+    }
+    
+    // Fallback response system for common questions when backend is offline
+    function getOfflineFallbackResponse(message) {
+        const lowerMsg = message.toLowerCase().trim();
+        
+        // Technical terms pattern matching
+        const techPatterns = {
+            'react': 'React is a popular JavaScript library for building user interfaces, especially single-page applications. It was developed by Facebook and uses a component-based architecture with virtual DOM for efficient rendering.',
+            'react js': 'React JS is a JavaScript library created by Facebook for building interactive user interfaces. It uses reusable components and a virtual DOM to create fast, dynamic web applications.',
+            'javascript': 'JavaScript is a versatile programming language primarily used for web development. It enables interactive features on websites and runs in web browsers, making web pages dynamic and responsive.',
+            'python': 'Python is a high-level, general-purpose programming language known for its simple syntax and readability. It\'s widely used in web development, data science, artificial intelligence, and automation.',
+            'html': 'HTML stands for HyperText Markup Language. It\'s the standard markup language for creating web pages and defines the structure and content of websites using elements and tags.',
+            'css': 'CSS stands for Cascading Style Sheets. It\'s used to style and layout web pages, controlling colors, fonts, spacing, and responsive design to make websites visually appealing.',
+            'node': 'Node.js is a JavaScript runtime built on Chrome\'s V8 engine. It allows developers to run JavaScript on the server side, enabling full-stack JavaScript development.',
+            'nodejs': 'Node.js is a JavaScript runtime environment that executes JavaScript code outside a web browser. It\'s commonly used for building scalable server-side applications and APIs.',
+            'mongodb': 'MongoDB is a NoSQL document database that stores data in flexible, JSON-like documents. It\'s popular for modern applications that need to handle large amounts of unstructured data.',
+            'sql': 'SQL stands for Structured Query Language. It\'s used to manage and manipulate relational databases, allowing you to create, read, update, and delete data efficiently.',
+            'api': 'API stands for Application Programming Interface. It\'s a set of rules that allows different software applications to communicate with each other, enabling data exchange and functionality sharing.',
+            'git': 'Git is a distributed version control system used to track changes in source code during software development. It helps developers collaborate and manage different versions of their projects.',
+            'github': 'GitHub is a web-based platform for version control using Git. It provides hosting for software development and enables collaboration, code sharing, and project management for developers worldwide.',
+            'mern': 'MERN stack is a popular JavaScript technology stack consisting of MongoDB, Express.js, React, and Node.js. It allows developers to build full-stack web applications using only JavaScript.',
+            'mern stack': 'The MERN stack includes MongoDB for the database, Express.js for the backend framework, React for the frontend, and Node.js as the runtime environment. It\'s a complete JavaScript solution for web development.',
+            'mean': 'MEAN stack consists of MongoDB, Express.js, Angular, and Node.js. Similar to MERN but uses Angular instead of React for the frontend framework.',
+            'angular': 'Angular is a TypeScript-based web application framework developed by Google. It\'s used for building dynamic single-page applications with a comprehensive set of tools and features.',
+            'vue': 'Vue.js is a progressive JavaScript framework for building user interfaces. It\'s known for being easy to learn while being powerful enough for complex applications.',
+            'typescript': 'TypeScript is a superset of JavaScript that adds static typing. It helps catch errors early in development and improves code quality and maintainability.',
+            'express': 'Express.js is a minimal and flexible Node.js web application framework. It provides robust features for building web and mobile applications and APIs.',
+            'rest api': 'REST API is an architectural style for designing networked applications. It uses HTTP methods like GET, POST, PUT, and DELETE to perform operations on resources.',
+            'machine learning': 'Machine learning is a subset of artificial intelligence where computers learn from data without being explicitly programmed. It powers applications like recommendation systems and image recognition.',
+            'ai': 'Artificial Intelligence is the simulation of human intelligence by machines. It includes learning, reasoning, and self-correction, and is used in applications like virtual assistants and autonomous vehicles.',
+            'artificial intelligence': 'Artificial Intelligence refers to computer systems that can perform tasks requiring human intelligence, such as visual perception, speech recognition, decision-making, and language translation.',
+            'docker': 'Docker is a platform for developing, shipping, and running applications in containers. Containers package software with all its dependencies, ensuring it runs consistently across different environments.',
+            'kubernetes': 'Kubernetes is an open-source container orchestration platform. It automates deployment, scaling, and management of containerized applications across clusters of hosts.',
+            'aws': 'AWS (Amazon Web Services) is a comprehensive cloud computing platform offering over 200 services including computing power, storage, and databases. It\'s the most widely used cloud provider.',
+            'cloud computing': 'Cloud computing delivers computing services like servers, storage, databases, and software over the internet. It offers flexibility, scalability, and cost savings compared to traditional infrastructure.'
+        };
+        
+        // Check for exact or partial matches
+        for (const [keyword, answer] of Object.entries(techPatterns)) {
+            if (lowerMsg.includes(keyword)) {
+                return answer;
+            }
+        }
+        
+        // Generic programming/tech questions
+        if (lowerMsg.match(/what (is|are)|tell me about|explain|define/)) {
+            if (lowerMsg.match(/programming|coding|software/)) {
+                return 'Programming is the process of creating instructions for computers to follow. It involves writing code in languages like JavaScript, Python, or Java to build software applications, websites, and systems.';
+            }
+            if (lowerMsg.match(/web development|website/)) {
+                return 'Web development is the work involved in developing websites for the internet. It includes frontend development (what users see), backend development (server-side logic), and database management.';
+            }
+            if (lowerMsg.match(/frontend|front end/)) {
+                return 'Frontend development focuses on the user interface and experience of websites and applications. It typically involves HTML, CSS, and JavaScript frameworks like React, Angular, or Vue.';
+            }
+            if (lowerMsg.match(/backend|back end/)) {
+                return 'Backend development handles server-side logic, databases, and application functionality. It uses languages like Node.js, Python, Java, or PHP to process data and serve it to the frontend.';
+            }
+            if (lowerMsg.match(/full stack|fullstack/)) {
+                return 'Full stack development involves working on both frontend and backend of applications. Full stack developers can build complete web applications from user interface to database management.';
+            }
+            if (lowerMsg.match(/database/)) {
+                return 'A database is an organized collection of structured data stored electronically. Popular databases include MySQL, PostgreSQL, MongoDB, and Oracle, used to store and retrieve application data efficiently.';
+            }
+        }
+        
+        // If no pattern matches, return null to trigger web search
+        return null;
     }
 
     // --- Core command handling ---
@@ -1005,6 +1183,38 @@ document.addEventListener('DOMContentLoaded', () => {
         'tell me a fun fact': () => {
             const fact = funFacts[Math.floor(Math.random() * funFacts.length)];
             speak(`Here's something interesting: ${fact}`);
+        },
+        'open my tasks': () => {
+            if (todoModal) {
+                todoModal.classList.remove('hidden');
+                todoModal.classList.add('flex');
+                speak(`Opening your task manager. You have ${todos.length} tasks.`);
+            }
+        },
+        'show my tasks': () => {
+            if (todoModal) {
+                todoModal.classList.remove('hidden');
+                todoModal.classList.add('flex');
+                speak(`Opening your task manager. You have ${todos.length} tasks.`);
+            }
+        },
+        'how many tasks': () => {
+            const activeCount = todos.filter(t => !t.completed).length;
+            const completedCount = todos.filter(t => t.completed).length;
+            speak(`You have ${activeCount} active task${activeCount !== 1 ? 's' : ''} and ${completedCount} completed task${completedCount !== 1 ? 's' : ''}.`);
+        },
+        'clear completed tasks': () => {
+            const beforeCount = todos.length;
+            todos = todos.filter(t => !t.completed);
+            const removedCount = beforeCount - todos.length;
+            users[currentUser].todos = todos;
+            localStorage.setItem('nextor_users', JSON.stringify(users));
+            localStorage.setItem('nextor_todos', JSON.stringify(todos));
+            renderTodos();
+            speak(`Removed ${removedCount} completed task${removedCount !== 1 ? 's' : ''}.`);
+        },
+        'show reminders': () => {
+            speak(`You have ${reminders.length} reminder${reminders.length !== 1 ? 's' : ''} set.`);
         },
         'tell me a joke': () => {
             const joke = jokes[Math.floor(Math.random() * jokes.length)];
@@ -1227,6 +1437,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 speak(`I noted the reminder to ${text}. I couldn't understand the time, but it's saved in your list.`);
             }
             handled = true;
+        } else if (command.startsWith('add task') || command.startsWith('create task') || command.startsWith('new task')) {
+            let taskText = '';
+            if (command.startsWith('add task')) {
+                taskText = command.substring('add task'.length).trim();
+            } else if (command.startsWith('create task')) {
+                taskText = command.substring('create task'.length).trim();
+            } else if (command.startsWith('new task')) {
+                taskText = command.substring('new task'.length).trim();
+            }
+            
+            // Detect priority from keywords
+            let priority = 'medium';
+            if (taskText.match(/\b(urgent|important|critical|asap|high priority)\b/i)) {
+                priority = 'high';
+                taskText = taskText.replace(/\b(urgent|important|critical|asap|high priority)\b/gi, '').trim();
+            } else if (taskText.match(/\b(low priority|later|when possible|sometime)\b/i)) {
+                priority = 'low';
+                taskText = taskText.replace(/\b(low priority|later|when possible|sometime)\b/gi, '').trim();
+            }
+            
+            if (taskText) {
+                addTodo(taskText, priority);
+                const priorityLabel = priority === 'high' ? ' as high priority' : priority === 'low' ? ' as low priority' : '';
+                speak(`Task added${priorityLabel}: ${taskText}`);
+            } else {
+                speak('Please tell me what task you want to add.');
+            }
+            handled = true;
         }
         
         // Math calculation - handle both "calculate X" and direct math expressions
@@ -1305,16 +1543,25 @@ document.addEventListener('DOMContentLoaded', () => {
             handled = true;
         }
 
+        // Try AI chat backend if still not handled
         if (!handled) {
-            const reply = await fetchChatReply(rawCommand);
-            if (reply) {
-                speak(reply);
-                handled = true;
+            try {
+                const reply = await fetchChatReply(rawCommand);
+                if (reply) {
+                    speak(reply);
+                    handled = true;
+                }
+            } catch (error) {
+                console.error('Error fetching chat reply:', error);
             }
         }
 
+        // Final fallback - search the web and inform user
         if (!handled) {
-            openWebsite(`https://www.google.com/search?q=${encodeURIComponent(rawCommand)}`, `I'm not sure about that. Let me search the web for ${rawCommand}.`);
+            speak(`I'm not sure about that. Let me search the web for you.`);
+            setTimeout(() => {
+                window.open(`https://www.google.com/search?q=${encodeURIComponent(rawCommand)}`, '_blank');
+            }, 1000);
         }
     }
 
@@ -1378,7 +1625,14 @@ document.addEventListener('DOMContentLoaded', () => {
     recognition.onresult = async (event) => {
         const transcript = event.results[0][0].transcript.trim();
         if (transcript) {
-            await handleCommands(transcript);
+            try {
+                await handleCommands(transcript);
+            } catch (error) {
+                console.error('Error handling command:', error);
+                speak('Sorry, I encountered an error processing your request. Please try again.');
+            }
+        } else {
+            speak("I didn't catch that. Could you please repeat?");
         }
     };
 
@@ -1583,111 +1837,317 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // ========================================
-    // Chat Functionality (Disabled - Chat panel removed)
-    // ========================================
-    const chatInput = document.getElementById('chat-input');
-    const sendChatBtn = document.getElementById('send-chat');
-    const chatMessages = document.getElementById('chat-messages');
-    const clearChatBtn = document.getElementById('clear-chat');
+    // ===========================
+    // USER LOGIN SYSTEM
+    // ===========================
     
-    // Only initialize if elements exist
-    if (chatInput && sendChatBtn && chatMessages && clearChatBtn) {
-        let chatHistory = [];
-
-        function addChatMessage(message, isUser = true) {
-            // Remove welcome message if exists
-            const welcome = chatMessages.querySelector('.text-center');
-            if (welcome) welcome.remove();
-
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `chat-message ${isUser ? 'user' : 'bot'}`;
-            
-            if (isUser) {
-                messageDiv.innerHTML = `
-                    <div class="message-bubble user">
-                        ${message}
-                    </div>
-                `;
+    // Show login modal for guests
+    if (userMenuBtnMobile) {
+        userMenuBtnMobile.addEventListener('click', () => {
+            if (currentUser === 'Guest') {
+                loginModal.classList.remove('hidden');
+                loginModal.classList.add('flex');
             } else {
-                messageDiv.innerHTML = `
-                    <div class="message-bubble bot">
-                        <i class="fas fa-robot bot-icon"></i>${message}
-                    </div>
-                `;
-            }
-            
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        async function sendChatMessage() {
-            const message = chatInput.value.trim();
-            if (!message) return;
-
-            // Add user message
-            addChatMessage(message, true);
-            chatInput.value = '';
-
-            // Show typing indicator
-            const typingDiv = document.createElement('div');
-            typingDiv.className = 'chat-message bot';
-            typingDiv.id = 'typing-indicator';
-            typingDiv.innerHTML = `
-                <div class="message-bubble bot">
-                    <div class="typing-indicator">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                    </div>
-                </div>
-            `;
-            chatMessages.appendChild(typingDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-
-            try {
-                const reply = await fetchChatReply(message, chatHistory);
-                
-                // Remove typing indicator
-                document.getElementById('typing-indicator')?.remove();
-                
-                // Add bot response
-                addChatMessage(reply, false);
-                
-                // Update history
-                chatHistory.push({ role: 'user', message });
-                chatHistory.push({ role: 'assistant', message: reply });
-                
-                // Keep only last 10 messages in history
-                if (chatHistory.length > 20) {
-                    chatHistory = chatHistory.slice(-20);
-                }
-            } catch (error) {
-                document.getElementById('typing-indicator')?.remove();
-                addChatMessage('Sorry, I encountered an error. Please try again.', false);
-            }
-        }
-
-        sendChatBtn.addEventListener('click', sendChatMessage);
-        
-        chatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendChatMessage();
+                userMenuModal.classList.remove('hidden');
+                userMenuModal.classList.add('flex');
             }
         });
-
-        clearChatBtn.addEventListener('click', () => {
-            chatHistory = [];
-            chatMessages.innerHTML = `
-                <div class="text-center py-8">
-                    <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-purple-500/20 flex items-center justify-center">
-                        <i class="fas fa-robot text-purple-400 text-xl"></i>
-                    </div>
-                    <p class="text-gray-400 text-sm font-medium">Start chatting with Nextor</p>
-                    <p class="text-gray-500 text-xs mt-1">Type your message below</p>
+    }
+    
+    if (userMenuBtnDesktop) {
+        userMenuBtnDesktop.addEventListener('click', () => {
+            if (currentUser === 'Guest') {
+                loginModal.classList.remove('hidden');
+                loginModal.classList.add('flex');
+            } else {
+                userMenuModal.classList.remove('hidden');
+                userMenuModal.classList.add('flex');
+            }
+        });
+    }
+    
+    if (closeLoginModal) {
+        closeLoginModal.addEventListener('click', () => {
+            loginModal.classList.add('hidden');
+            loginModal.classList.remove('flex');
+        });
+    }
+    
+    if (loginSubmitBtn) {
+        loginSubmitBtn.addEventListener('click', () => {
+            const username = loginUsername.value.trim();
+            if (!username) {
+                speak('Please enter a username');
+                return;
+            }
+            
+            // Create or login user
+            if (!users[username]) {
+                users[username] = {
+                    username,
+                    history: [],
+                    todos: [],
+                    reminders: [],
+                    createdAt: new Date().toISOString()
+                };
+            }
+            
+            currentUser = username;
+            localStorage.setItem('nextor_current_user', JSON.stringify(currentUser));
+            localStorage.setItem('nextor_users', JSON.stringify(users));
+            
+            // Update UI
+            if (userDisplayName) userDisplayName.textContent = currentUser;
+            if (currentUsername) currentUsername.textContent = currentUser;
+            
+            // Load user data
+            conversationHistory = users[currentUser].history || [];
+            todos = users[currentUser].todos || [];
+            reminders = users[currentUser].reminders || [];
+            
+            renderConversation();
+            renderTodos();
+            renderReminders();
+            
+            loginModal.classList.add('hidden');
+            loginModal.classList.remove('flex');
+            loginUsername.value = '';
+            loginPassword.value = '';
+            
+            speak(`Welcome back, ${username}! Your data has been loaded.`);
+        });
+    }
+    
+    if (closeUserMenu) {
+        closeUserMenu.addEventListener('click', () => {
+            userMenuModal.classList.add('hidden');
+            userMenuModal.classList.remove('flex');
+        });
+    }
+    
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            // Save current user data
+            users[currentUser].history = conversationHistory;
+            users[currentUser].todos = todos;
+            users[currentUser].reminders = reminders;
+            localStorage.setItem('nextor_users', JSON.stringify(users));
+            
+            // Logout to guest
+            currentUser = 'Guest';
+            localStorage.setItem('nextor_current_user', JSON.stringify(currentUser));
+            
+            // Load guest data
+            conversationHistory = users['Guest'].history || [];
+            todos = users['Guest'].todos || [];
+            reminders = users['Guest'].reminders || [];
+            
+            // Update UI
+            if (userDisplayName) userDisplayName.textContent = 'Guest';
+            if (currentUsername) currentUsername.textContent = 'Guest';
+            
+            renderConversation();
+            renderTodos();
+            renderReminders();
+            
+            userMenuModal.classList.add('hidden');
+            userMenuModal.classList.remove('flex');
+            
+            speak('Logged out successfully.');
+        });
+    }
+    
+    if (viewTodosBtn) {
+        viewTodosBtn.addEventListener('click', () => {
+            userMenuModal.classList.add('hidden');
+            userMenuModal.classList.remove('flex');
+            todoModal.classList.remove('hidden');
+            todoModal.classList.add('flex');
+        });
+    }
+    
+    // ===========================
+    // VOICE TO-DO MANAGER
+    // ===========================
+    
+    function renderTodos() {
+        if (!todoList) return;
+        
+        if (todos.length === 0) {
+            todoList.innerHTML = `
+                <div class="text-center py-12 text-gray-400">
+                    <i class="fas fa-clipboard-list text-5xl mb-4 opacity-50"></i>
+                    <p>No tasks yet. Add one above or use voice command!</p>
+                    <p class="text-sm mt-2">Say: "add task [your task]"</p>
                 </div>
             `;
+            return;
+        }
+        
+        todoList.innerHTML = todos.map((todo, index) => {
+            const priorityColors = {
+                high: 'border-red-500/50 bg-red-500/10',
+                medium: 'border-yellow-500/50 bg-yellow-500/10',
+                low: 'border-green-500/50 bg-green-500/10'
+            };
+            const priorityIcons = {
+                high: '🔴',
+                medium: '🟡',
+                low: '🟢'
+            };
+            
+            return `
+                <div class="glass-effect rounded-xl p-4 border-l-4 ${priorityColors[todo.priority]} ${todo.completed ? 'opacity-50' : ''}">
+                    <div class="flex items-start gap-3">
+                        <button onclick="toggleTodo(${index})" class="flex-shrink-0 w-6 h-6 rounded-full border-2 ${todo.completed ? 'bg-green-500 border-green-500' : 'border-gray-500'} flex items-center justify-center transition-all">
+                            ${todo.completed ? '<i class="fas fa-check text-white text-xs"></i>' : ''}
+                        </button>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-white font-medium ${todo.completed ? 'line-through' : ''}">${todo.task}</p>
+                            <div class="flex items-center gap-2 mt-1 text-xs text-gray-400">
+                                <span>${priorityIcons[todo.priority]} ${todo.priority}</span>
+                                <span>•</span>
+                                <span>${new Date(todo.createdAt).toLocaleDateString()}</span>
+                            </div>
+                        </div>
+                        <button onclick="deleteTodo(${index})" class="flex-shrink-0 w-8 h-8 rounded-lg bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 flex items-center justify-center transition-all">
+                            <i class="fas fa-trash text-red-400 text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    function addTodo(task, priority = 'medium') {
+        if (!task || !task.trim()) return;
+        
+        todos.push({
+            task: task.trim(),
+            priority,
+            completed: false,
+            createdAt: new Date().toISOString()
+        });
+        
+        // Save to user data
+        users[currentUser].todos = todos;
+        localStorage.setItem('nextor_users', JSON.stringify(users));
+        localStorage.setItem('nextor_todos', JSON.stringify(todos));
+        
+        renderTodos();
+    }
+    
+    window.toggleTodo = function(index) {
+        if (todos[index]) {
+            todos[index].completed = !todos[index].completed;
+            users[currentUser].todos = todos;
+            localStorage.setItem('nextor_users', JSON.stringify(users));
+            localStorage.setItem('nextor_todos', JSON.stringify(todos));
+            renderTodos();
+            
+            if (todos[index].completed) {
+                speak(`Task completed: ${todos[index].task}`);
+            }
+        }
+    };
+    
+    window.deleteTodo = function(index) {
+        if (todos[index]) {
+            const task = todos[index].task;
+            todos.splice(index, 1);
+            users[currentUser].todos = todos;
+            localStorage.setItem('nextor_users', JSON.stringify(users));
+            localStorage.setItem('nextor_todos', JSON.stringify(todos));
+            renderTodos();
+            speak(`Task deleted: ${task}`);
+        }
+    };
+    
+    if (addTodoBtn) {
+        addTodoBtn.addEventListener('click', () => {
+            const task = todoTaskInput.value.trim();
+            const priority = todoPriority.value;
+            if (task) {
+                addTodo(task, priority);
+                todoTaskInput.value = '';
+                speak(`Task added: ${task}`);
+            }
+        });
+    }
+    
+    if (todoTaskInput) {
+        todoTaskInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const task = todoTaskInput.value.trim();
+                const priority = todoPriority.value;
+                if (task) {
+                    addTodo(task, priority);
+                    todoTaskInput.value = '';
+                    speak(`Task added: ${task}`);
+                }
+            }
+        });
+    }
+    
+    if (closeTodoModal) {
+        closeTodoModal.addEventListener('click', () => {
+            todoModal.classList.add('hidden');
+            todoModal.classList.remove('flex');
+        });
+    }
+    
+    // Initialize todos
+    renderTodos();
+    
+    // ===========================
+    // SMART REMINDER ENHANCEMENTS
+    // ===========================
+    
+    // Update add reminder to include new fields
+    const originalAddReminderHandler = addReminderBtn ? addReminderBtn.onclick : null;
+    if (addReminderBtn) {
+        addReminderBtn.onclick = null;
+        addReminderBtn.addEventListener('click', () => {
+            const task = reminderTaskInput.value.trim();
+            const timeStr = reminderTimeInput.value.trim();
+            const repeat = reminderRepeat ? reminderRepeat.value : 'once';
+            const category = reminderCategory ? reminderCategory.value : 'personal';
+            const priority = reminderPrioritySelect ? reminderPrioritySelect.value : 'medium';
+            
+            if (!task || !timeStr) {
+                speak('Please enter both task and time for the reminder');
+                return;
+            }
+            
+            const scheduledTime = parseTimeToDate(timeStr);
+            if (!scheduledTime) {
+                speak('I could not understand that time format. Try 5pm or in 30 minutes');
+                return;
+            }
+            
+            const reminder = {
+                task,
+                time: scheduledTime.toISOString(),
+                repeat,
+                category,
+                priority,
+                createdAt: new Date().toISOString()
+            };
+            
+            reminders.push(reminder);
+            users[currentUser].reminders = reminders;
+            localStorage.setItem('nextor_reminders', JSON.stringify(reminders));
+            localStorage.setItem('nextor_users', JSON.stringify(users));
+            
+            scheduleReminder(reminder, reminders.length - 1);
+            renderReminders();
+            
+            reminderTaskInput.value = '';
+            reminderTimeInput.value = '';
+            
+            const timeLabel = scheduledTime.toLocaleString();
+            const repeatLabel = repeat !== 'once' ? ` (${repeat})` : '';
+            speak(`Smart reminder set for ${timeLabel}${repeatLabel}: ${task}`);
         });
     }
 
@@ -1697,5 +2157,8 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('✅ Nextor initialized successfully');
         console.log('📡 Backend URL:', API_BASE_URL);
         console.log('🎤 Speech recognition:', SpeechRecognition ? 'Available' : 'Not supported');
+        console.log('👤 Current User:', currentUser);
+        console.log('📝 Todos:', todos.length);
+        console.log('⏰ Reminders:', reminders.length);
     }
 });

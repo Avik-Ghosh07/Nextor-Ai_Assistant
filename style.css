@@ -57,9 +57,9 @@ body {
    GLASS EFFECT
    =========================== */
 .glass-effect { 
-    background: rgba(31, 41, 55, 0.8); 
+    background: rgb(35, 41, 50); 
     backdrop-filter: blur(20px); 
-    border: 1px solid rgba(75, 85, 99, 0.3); 
+    border: 1px solid rgba(44, 52, 62, 0.3); 
 }
 
 /* ===========================
@@ -71,7 +71,7 @@ body {
 }
 
 .status-offline { 
-    background: #6b7280; 
+    background: #191e28; 
     box-shadow: 0 0 10px rgba(107, 114, 128, 0.3); 
 }
 

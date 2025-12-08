@@ -12,6 +12,15 @@ venv/
 .venv/
 env/
 ENV/
+*.egg-info/
+dist/
+build/
+
+# Testing
+test_*.py
+*.test.js
+coverage/
+.pytest_cache/
 
 # IDE
 .vscode/
@@ -25,3 +34,9 @@ Thumbs.db
 
 # Logs
 *.log
+logs/
+
+# Database (if added later)
+*.db
+*.sqlite
+*.sqlite3

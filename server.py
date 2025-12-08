@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import datetime as dt
 import os
 import random
@@ -22,7 +20,45 @@ except ImportError:
 load_dotenv()
 
 app = Flask(__name__, static_folder='.', static_url_path='')
-CORS(app, resources={r"/*": {"origins": "*"}})
+
+# Production-ready CORS configuration
+ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', '*').split(',')
+CORS(app, resources={
+    r"/*": {
+        "origins": ALLOWED_ORIGINS,
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"],
+        "max_age": 3600
+    }
+})
+
+# Security configurations
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024  # 16KB max request size
+app.config['JSON_SORT_KEYS'] = False
+
+# Rate limiting (simple in-memory tracker)
+request_tracker = {}
+RATE_LIMIT = int(os.getenv('RATE_LIMIT', '60'))  # requests per minute
+RATE_WINDOW = 60  # seconds
+
+def check_rate_limit(client_ip: str) -> bool:
+    """Simple rate limiting check. Returns True if allowed."""
+    now = dt.datetime.now().timestamp()
+    if client_ip not in request_tracker:
+        request_tracker[client_ip] = []
+    
+    # Remove old requests outside the window
+    request_tracker[client_ip] = [
+        req_time for req_time in request_tracker[client_ip]
+        if now - req_time < RATE_WINDOW
+    ]
+    
+    # Check if limit exceeded
+    if len(request_tracker[client_ip]) >= RATE_LIMIT:
+        return False
+    
+    request_tracker[client_ip].append(now)
+    return True
 
 # Configure Gemini AI if API key is available
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
@@ -31,18 +67,20 @@ gemini_model = None
 if GEMINI_AVAILABLE and GEMINI_API_KEY:
     try:
         genai.configure(api_key=GEMINI_API_KEY)
-        gemini_model = genai.GenerativeModel('gemini-2.0-flash')
-        print("✅ Gemini AI initialized successfully")
+        gemini_model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        print("✅ Gemini AI initialized successfully (gemini-2.0-flash-exp)")
     except Exception as e:
         print(f"⚠️ Gemini AI initialization failed: {e}")
+        print("ℹ️ App will use web search and built-in responses as fallback")
 else:
     if not GEMINI_AVAILABLE:
-        print("⚠️ google-generativeai not installed. Run: pip install google-generativeai")
+        print("ℹ️ google-generativeai not installed. Using web search fallback.")
     if not GEMINI_API_KEY:
-        print("⚠️ GEMINI_API_KEY not found in .env file")
+        print("ℹ️ GEMINI_API_KEY not set. Using web search and built-in responses.")
 
 WEATHER_API_URL = "https://api.open-meteo.com/v1/forecast"
 GEOCODE_API_URL = "https://geocoding-api.open-meteo.com/v1/reverse"
+DUCKDUCKGO_INSTANT_ANSWER_URL = "https://api.duckduckgo.com/"
 
 WEATHER_CODES = {
     0: "Clear sky",
@@ -137,13 +175,22 @@ def index():
 
 @app.route("/api/weather")
 def get_weather():
-    lat = _safe_float(request.args.get("lat"))
-    lon = _safe_float(request.args.get("lon"))
-
-    if lat is None or lon is None:
-        return jsonify({"error": "lat and lon parameters are required"}), 400
-
     try:
+        # Rate limiting
+        client_ip = request.remote_addr or 'unknown'
+        if not check_rate_limit(client_ip):
+            return jsonify({"error": "Rate limit exceeded. Please try again later."}), 429
+        
+        lat = _safe_float(request.args.get("lat"))
+        lon = _safe_float(request.args.get("lon"))
+
+        if lat is None or lon is None:
+            return jsonify({"error": "lat and lon parameters are required"}), 400
+        
+        # Validate coordinates
+        if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
+            return jsonify({"error": "Invalid coordinates"}), 400
+
         response = requests.get(
             WEATHER_API_URL,
             params={
@@ -194,6 +241,64 @@ def _clean_message(message: str) -> str:
     return message.strip()
 
 
+def _search_web(query: str) -> str | None:
+    """Search the web using DuckDuckGo Instant Answer API. Returns summary or None."""
+    try:
+        print(f"🔍 Searching web for: {query}")
+        params = {
+            'q': query,
+            'format': 'json',
+            'no_html': 1,
+            'skip_disambig': 1
+        }
+        
+        response = requests.get(DUCKDUCKGO_INSTANT_ANSWER_URL, params=params, timeout=5)
+        response.raise_for_status()
+        data = response.json()
+        
+        # Try different answer fields in order of preference
+        answer = None
+        
+        # Abstract (best for "what is" questions)
+        if data.get('Abstract'):
+            answer = data['Abstract']
+            source = data.get('AbstractSource', 'web')
+            print(f"✅ Found abstract from {source}")
+        
+        # Definition (for dictionary-like queries)
+        elif data.get('Definition'):
+            answer = data['Definition']
+            source = data.get('DefinitionSource', 'web')
+            print(f"✅ Found definition from {source}")
+        
+        # Answer (direct answers like calculations, conversions)
+        elif data.get('Answer'):
+            answer = data['Answer']
+            print(f"✅ Found direct answer")
+        
+        # Related topics (fallback)
+        elif data.get('RelatedTopics') and len(data['RelatedTopics']) > 0:
+            first_topic = data['RelatedTopics'][0]
+            if isinstance(first_topic, dict) and first_topic.get('Text'):
+                answer = first_topic['Text']
+                print(f"✅ Found related topic answer")
+        
+        if answer:
+            # Clean up the answer
+            answer = answer.strip()
+            # Limit to reasonable length for voice
+            if len(answer) > 500:
+                answer = answer[:497] + "..."
+            return answer
+        
+        print(f"⚠️ No instant answer found for: {query}")
+        return None
+        
+    except Exception as e:
+        print(f"❌ Web search error: {e}")
+        return None
+
+
 def _get_gemini_reply(message: str, history: List[Dict[str, str]]) -> str | None:
     """Get AI response from Gemini. Returns None if unavailable or fails."""
     if not gemini_model:
@@ -203,7 +308,7 @@ def _get_gemini_reply(message: str, history: List[Dict[str, str]]) -> str | None
     try:
         print(f"🤖 Sending to Gemini AI: {message}")
         # Build conversation context for Gemini
-        context = "You are Nextor, a helpful AI voice assistant. You help with productivity, answer questions, provide motivation, and assist with daily tasks. Be friendly, concise, and helpful. Keep responses under 100 words unless asked for more detail.\n\n"
+        context = "You are a knowledgeable AI assistant. Answer questions directly and accurately. Be concise but informative. If asked about technical topics, programming, science, history, or general knowledge, provide clear explanations. Keep responses under 150 words unless more detail is requested.\n\n"
         
         # Add recent conversation history (last 6 messages)
         if history:
@@ -219,9 +324,11 @@ def _get_gemini_reply(message: str, history: List[Dict[str, str]]) -> str | None
         
         if response and response.text:
             reply = response.text.strip()
-            # Remove any "Nextor:" prefix if AI includes it
+            # Remove any "Nextor:" or "Assistant:" prefix if AI includes it
             if reply.lower().startswith('nextor:'):
                 reply = reply[7:].strip()
+            elif reply.lower().startswith('assistant:'):
+                reply = reply[10:].strip()
             print(f"✅ Gemini replied: {reply[:100]}...")
             return reply
         return None
@@ -232,16 +339,25 @@ def _get_gemini_reply(message: str, history: List[Dict[str, str]]) -> str | None
 
 
 def _choose_reply(message: str, history: List[Dict[str, str]]) -> str:
-    """Generate reply using Gemini AI or fallback to pattern matching."""
+    """Generate reply using Gemini AI, web search, or fallback to pattern matching."""
     
     # Try Gemini AI first
     gemini_reply = _get_gemini_reply(message, history)
     if gemini_reply:
         return gemini_reply
     
-    # Fallback to pattern-based responses
-    print(f"⚠️ Gemini unavailable, using fallback for: {message}")
+    # If Gemini fails, try web search for question-like queries
     lowered = message.lower()
+    is_question = any(lowered.startswith(q) for q in ['what is', 'what are', 'who is', 'who are', 'when was', 'where is', 'how does', 'why does', 'define', 'explain', 'tell me about'])
+    
+    if is_question:
+        web_answer = _search_web(message)
+        if web_answer:
+            print(f"✅ Using web search answer")
+            return web_answer
+    
+    # Fallback to pattern-based responses
+    print(f"⚠️ Gemini and web search unavailable, using fallback for: {message}")
     now = dt.datetime.now()
     greeting = f"Good {('morning' if now.hour < 12 else 'afternoon' if now.hour < 18 else 'evening')}!"
 
@@ -389,15 +505,35 @@ def _choose_reply(message: str, history: List[Dict[str, str]]) -> str:
 
 @app.post("/api/chat")
 def chat():
-    data = request.get_json(silent=True) or {}
-    message = _clean_message(str(data.get("message", "")))
-    history = data.get("history") or []
-
-    if not message:
-        return jsonify({"error": "Message is required"}), 400
-
-    reply = _choose_reply(message, history)
-    return jsonify({"reply": reply})
+    try:
+        # Rate limiting
+        client_ip = request.remote_addr or 'unknown'
+        if not check_rate_limit(client_ip):
+            return jsonify({"error": "Rate limit exceeded. Please try again later."}), 429
+        
+        # Input validation
+        data = request.get_json(silent=True)
+        if not data:
+            return jsonify({"error": "Invalid JSON payload"}), 400
+        
+        message = _clean_message(str(data.get("message", "")))
+        if not message or len(message) > 1000:
+            return jsonify({"error": "Message must be between 1 and 1000 characters"}), 400
+        
+        history = data.get("history") or []
+        if not isinstance(history, list):
+            history = []
+        
+        # Limit history size
+        history = history[-10:] if len(history) > 10 else history
+        
+        # Get reply
+        reply = _choose_reply(message, history)
+        return jsonify({"reply": reply})
+        
+    except Exception as e:
+        print(f"❌ Chat endpoint error: {e}")
+        return jsonify({"error": "Internal server error"}), 500
 
 
 @app.get("/api/health")

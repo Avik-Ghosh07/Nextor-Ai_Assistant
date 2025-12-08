@@ -445,7 +445,6 @@ def _choose_reply(message: str, history: List[Dict[str, str]]) -> str:
         return random.choice(jokes_list)
 
     # Planning and organization
-    recent_user = next((item["text"] for item in reversed(history) if item["role"] == "user"), "")
     if "plan" in lowered or "schedule" in lowered or "organize" in lowered:
         planning_advice = [
             "Let's create a solid plan! Start by identifying your main goal, then break it into smaller, achievable steps. What's the main outcome you want to accomplish?",
@@ -485,16 +484,7 @@ def _choose_reply(message: str, history: List[Dict[str, str]]) -> str:
             "What goal would you like to work on? I can help you break it down into actionable steps."
         )
 
-    # Default responses with context awareness
-    if recent_user:
-        context_responses = [
-            f"I understand you mentioned \"{recent_user}\" earlier. Let me help you with that. Could you provide more details so I can assist you better?",
-            f"Got it! Building on what you said about \"{recent_user}\", I can help you dive deeper. What specific aspect would you like to explore?",
-            f"Based on your previous message about \"{recent_user}\", I'm here to help. What would you like to know or do next?"
-        ]
-        return random.choice(context_responses)
-
-    # General helpful response
+    # General helpful response (removed confusing context awareness)
     helpful_responses = [
         "I'm here to help you be more productive and efficient! I can assist with: productivity tips, playing music, answering questions, setting reminders, planning your day, and much more. What would you like to do?",
         "I'm Nextor, your AI productivity assistant! I can help you with time management, motivation, planning, playing music, answering questions, and staying organized. How can I assist you today?",

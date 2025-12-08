@@ -338,6 +338,55 @@ def _get_gemini_reply(message: str, history: List[Dict[str, str]]) -> str | None
         return None
 
 
+def _get_builtin_knowledge(query: str) -> str | None:
+    """Return built-in knowledge for common technical topics."""
+    query_lower = query.lower()
+    
+    # Technical knowledge base
+    knowledge_base = {
+        'next js': "Next.js is a powerful React framework for building production-ready web applications. It provides features like server-side rendering, static site generation, API routes, and automatic code splitting. Created by Vercel, it's popular for building fast, SEO-friendly websites.",
+        'nextjs': "Next.js is a powerful React framework for building production-ready web applications. It provides features like server-side rendering, static site generation, API routes, and automatic code splitting. Created by Vercel, it's popular for building fast, SEO-friendly websites.",
+        'react': "React is a JavaScript library for building user interfaces, developed by Facebook. It uses a component-based architecture and virtual DOM for efficient rendering. React is widely used for creating interactive, single-page applications.",
+        'react js': "React is a JavaScript library for building user interfaces, developed by Facebook. It uses a component-based architecture and virtual DOM for efficient rendering. React is widely used for creating interactive, single-page applications.",
+        'vue': "Vue.js is a progressive JavaScript framework for building user interfaces. It's known for being easy to learn while powerful enough for complex applications. Vue uses a reactive data binding system and component-based architecture.",
+        'vue js': "Vue.js is a progressive JavaScript framework for building user interfaces. It's known for being easy to learn while powerful enough for complex applications. Vue uses a reactive data binding system and component-based architecture.",
+        'angular': "Angular is a TypeScript-based web application framework developed by Google. It's used for building dynamic single-page applications with a comprehensive set of tools including dependency injection, routing, and forms.",
+        'node': "Node.js is a JavaScript runtime built on Chrome's V8 engine. It allows developers to run JavaScript on the server side, enabling full-stack JavaScript development and building scalable network applications.",
+        'nodejs': "Node.js is a JavaScript runtime built on Chrome's V8 engine. It allows developers to run JavaScript on the server side, enabling full-stack JavaScript development and building scalable network applications.",
+        'node js': "Node.js is a JavaScript runtime built on Chrome's V8 engine. It allows developers to run JavaScript on the server side, enabling full-stack JavaScript development and building scalable network applications.",
+        'python': "Python is a high-level, general-purpose programming language known for its simple syntax and readability. It's widely used in web development, data science, artificial intelligence, automation, and scientific computing.",
+        'javascript': "JavaScript is a versatile programming language primarily used for web development. It enables interactive features on websites and runs in browsers. It's also used server-side with Node.js and for mobile app development.",
+        'typescript': "TypeScript is a superset of JavaScript that adds static typing. Developed by Microsoft, it helps catch errors early in development and improves code quality and maintainability in large-scale applications.",
+        'html': "HTML (HyperText Markup Language) is the standard markup language for creating web pages. It defines the structure and content of websites using elements and tags like headings, paragraphs, links, and images.",
+        'css': "CSS (Cascading Style Sheets) is used to style and layout web pages. It controls colors, fonts, spacing, and responsive design to make websites visually appealing and work across different screen sizes.",
+        'tailwind': "Tailwind CSS is a utility-first CSS framework that provides low-level utility classes to build custom designs. It's popular for rapid UI development and creating responsive, modern interfaces without writing custom CSS.",
+        'tailwind css': "Tailwind CSS is a utility-first CSS framework that provides low-level utility classes to build custom designs. It's popular for rapid UI development and creating responsive, modern interfaces without writing custom CSS.",
+        'express': "Express.js is a minimal and flexible Node.js web application framework. It provides robust features for building web and mobile applications and APIs, making it one of the most popular backend frameworks.",
+        'express js': "Express.js is a minimal and flexible Node.js web application framework. It provides robust features for building web and mobile applications and APIs, making it one of the most popular backend frameworks.",
+        'mongodb': "MongoDB is a NoSQL document database that stores data in flexible, JSON-like documents. It's popular for modern applications that need to handle large amounts of unstructured data with high scalability.",
+        'sql': "SQL (Structured Query Language) is used to manage and manipulate relational databases. It allows you to create, read, update, and delete data efficiently in databases like MySQL, PostgreSQL, and SQL Server.",
+        'git': "Git is a distributed version control system used to track changes in source code during software development. It helps developers collaborate, manage different versions of projects, and maintain code history.",
+        'github': "GitHub is a web-based platform for version control using Git. It provides hosting for software development and enables collaboration, code sharing, project management, and open-source contribution.",
+        'docker': "Docker is a platform for developing, shipping, and running applications in containers. Containers package software with all its dependencies, ensuring it runs consistently across different environments.",
+        'kubernetes': "Kubernetes is an open-source container orchestration platform. It automates deployment, scaling, and management of containerized applications across clusters of hosts, making it easier to manage complex deployments.",
+        'api': "API (Application Programming Interface) is a set of rules that allows different software applications to communicate with each other. It enables data exchange and functionality sharing between systems.",
+        'rest api': "REST API is an architectural style for designing networked applications. It uses HTTP methods like GET, POST, PUT, and DELETE to perform operations on resources, making it easy to build web services.",
+        'graphql': "GraphQL is a query language for APIs developed by Facebook. It allows clients to request exactly the data they need, reducing over-fetching and under-fetching compared to traditional REST APIs.",
+        'aws': "AWS (Amazon Web Services) is a comprehensive cloud computing platform offering over 200 services including computing power, storage, and databases. It's the most widely used cloud provider.",
+        'machine learning': "Machine learning is a subset of artificial intelligence where computers learn from data without being explicitly programmed. It powers applications like recommendation systems, image recognition, and predictive analytics.",
+        'ai': "Artificial Intelligence is the simulation of human intelligence by machines. It includes learning, reasoning, and self-correction, and is used in applications like virtual assistants, autonomous vehicles, and data analysis.",
+        'artificial intelligence': "Artificial Intelligence refers to computer systems that can perform tasks requiring human intelligence, such as visual perception, speech recognition, decision-making, and language translation.",
+    }
+    
+    # Check for exact or partial matches
+    for keyword, answer in knowledge_base.items():
+        if keyword in query_lower:
+            print(f"✅ Using built-in knowledge for: {keyword}")
+            return answer
+    
+    return None
+
+
 def _choose_reply(message: str, history: List[Dict[str, str]]) -> str:
     """Generate reply using Gemini AI, web search, or fallback to pattern matching."""
     
@@ -351,6 +400,12 @@ def _choose_reply(message: str, history: List[Dict[str, str]]) -> str:
     is_question = any(lowered.startswith(q) for q in ['what is', 'what are', 'who is', 'who are', 'when was', 'where is', 'how does', 'why does', 'define', 'explain', 'tell me about'])
     
     if is_question:
+        # Try built-in knowledge first for common topics
+        builtin_answer = _get_builtin_knowledge(message)
+        if builtin_answer:
+            return builtin_answer
+        
+        # Then try web search
         web_answer = _search_web(message)
         if web_answer:
             print(f"✅ Using web search answer")

@@ -402,23 +402,29 @@ def _choose_reply(message: str, history: List[Dict[str, str]]) -> str:
     
     # Check for built-in commands/patterns FIRST (before AI)
     # This ensures productivity tips, quotes, etc. are handled directly
-    if any(keyword in lowered for keyword in ['productivity tip', 'give me a tip', 'give me tip']):
+    if any(keyword in lowered for keyword in ['productivity tip', 'productivity', 'productive', 'give me a tip', 'give me a productivity tip', 'tell me some productivity tips', 'some productivity tips', 'tips for productivity']):
         tips = [
             "Try the Pomodoro Technique: 25 minutes of deep focused work, then a 5-minute break. After 4 rounds, take a longer 15-30 minute break.",
             "Start your day by identifying your top 3 priorities. Focus on completing these before anything else - they're your non-negotiables.",
             "Eliminate distractions: turn off notifications, close unnecessary tabs, put your phone on silent, and create a dedicated workspace.",
             "Use the 2-minute rule: if a task takes less than 2 minutes, do it immediately. This prevents small tasks from piling up.",
-            "Batch similar tasks together. Group all your emails, phone calls, and meetings to reduce context switching."
+            "Batch similar tasks together. Group all your emails, phone calls, and meetings to reduce context switching.",
+            "Take regular breaks - your brain needs rest to maintain peak performance. Stand up, stretch, or take a short walk every hour.",
+            "Use time blocking - schedule specific time slots for different tasks. This creates structure and helps you stay focused.",
+            "Start with your most important task first thing in the morning when your energy is highest. Don't check emails or social media first."
         ]
         return random.choice(tips)
     
-    if any(keyword in lowered for keyword in ['motivat', 'motivation', 'inspire', 'quote', 'motivational quote']):
+    if any(keyword in lowered for keyword in ['motivat me', 'motivation', 'inspire', 'quote', 'motivational quote', 'tell me some motivation', 'give me some motivational quote', 'motivational']):
         quotes = [
             "You've got this! Break the task into one focused step, get that done, and the momentum will follow. Small wins lead to big victories.",
             "Your future self will thank you for getting started today. Every expert was once a beginner who refused to give up.",
             "Progress, not perfection. Focus on doing one thing well right now, and build from there. You have everything you need to succeed!",
             "The best time to start was yesterday, the second best time is now. Don't wait for perfect conditions - create them!",
-            "Success is the sum of small efforts repeated day in and day out. You're already making progress by being here."
+            "Success is the sum of small efforts repeated day in and day out. You're already making progress by being here.",
+            "Don't wait for motivation - start anyway. Action creates momentum, and momentum creates motivation.",
+            "Every expert was once a beginner. Every master was once a disaster. Keep going, you're doing better than you think!",
+            "Your only limit is you. Believe in yourself and you're halfway there. Now take the first step!"
         ]
         return random.choice(quotes)
     

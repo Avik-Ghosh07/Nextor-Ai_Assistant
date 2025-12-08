@@ -300,7 +300,7 @@ def _search_web(query: str) -> str | None:
 
 
 def _get_gemini_reply(message: str, history: List[Dict[str, str]]) -> str | None:
-    """Get AI response from Gemini. Returns None if unavailable or fails."""
+    """Get AI response from Gemini with timeout. Returns None if unavailable or fails."""
     if not gemini_model:
         print("⚠️ Gemini model not available")
         return None
@@ -310,17 +310,25 @@ def _get_gemini_reply(message: str, history: List[Dict[str, str]]) -> str | None
         # Build conversation context for Gemini
         context = "You are a knowledgeable AI assistant. Answer questions directly and accurately. Be concise but informative. If asked about technical topics, programming, science, history, or general knowledge, provide clear explanations. Keep responses under 150 words unless more detail is requested.\n\n"
         
-        # Add recent conversation history (last 6 messages)
+        # Add recent conversation history (last 4 messages for faster processing)
         if history:
-            recent = history[-6:]
+            recent = history[-4:]
             for item in recent:
                 role = "User" if item["role"] == "user" else "Assistant"
                 context += f"{role}: {item['text']}\n"
         
         context += f"User: {message}\nAssistant:"
         
-        # Generate response with Gemini
-        response = gemini_model.generate_content(context)
+        # Generate response with Gemini (with generation config for speed)
+        generation_config = {
+            "temperature": 0.7,
+            "max_output_tokens": 256,  # Limit response length for faster replies
+        }
+        response = gemini_model.generate_content(
+            context,
+            generation_config=generation_config,
+            request_options={"timeout": 5}  # 5 second timeout
+        )
         
         if response and response.text:
             reply = response.text.strip()
@@ -334,7 +342,7 @@ def _get_gemini_reply(message: str, history: List[Dict[str, str]]) -> str | None
         return None
         
     except Exception as e:
-        print(f"❌ Gemini AI error: {e}")
+        print(f"❌ Gemini AI error (using fallback): {e}")
         return None
 
 

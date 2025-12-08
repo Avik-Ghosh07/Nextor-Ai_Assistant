@@ -390,13 +390,36 @@ def _get_builtin_knowledge(query: str) -> str | None:
 def _choose_reply(message: str, history: List[Dict[str, str]]) -> str:
     """Generate reply using Gemini AI, web search, or fallback to pattern matching."""
     
-    # Try Gemini AI first
+    lowered = message.lower()
+    
+    # Check for built-in commands/patterns FIRST (before AI)
+    # This ensures productivity tips, quotes, etc. are handled directly
+    if any(keyword in lowered for keyword in ['productivity tip', 'give me a tip', 'give me tip']):
+        tips = [
+            "Try the Pomodoro Technique: 25 minutes of deep focused work, then a 5-minute break. After 4 rounds, take a longer 15-30 minute break.",
+            "Start your day by identifying your top 3 priorities. Focus on completing these before anything else - they're your non-negotiables.",
+            "Eliminate distractions: turn off notifications, close unnecessary tabs, put your phone on silent, and create a dedicated workspace.",
+            "Use the 2-minute rule: if a task takes less than 2 minutes, do it immediately. This prevents small tasks from piling up.",
+            "Batch similar tasks together. Group all your emails, phone calls, and meetings to reduce context switching."
+        ]
+        return random.choice(tips)
+    
+    if any(keyword in lowered for keyword in ['motivat', 'motivation', 'inspire', 'quote', 'motivational quote']):
+        quotes = [
+            "You've got this! Break the task into one focused step, get that done, and the momentum will follow. Small wins lead to big victories.",
+            "Your future self will thank you for getting started today. Every expert was once a beginner who refused to give up.",
+            "Progress, not perfection. Focus on doing one thing well right now, and build from there. You have everything you need to succeed!",
+            "The best time to start was yesterday, the second best time is now. Don't wait for perfect conditions - create them!",
+            "Success is the sum of small efforts repeated day in and day out. You're already making progress by being here."
+        ]
+        return random.choice(quotes)
+    
+    # Try Gemini AI
     gemini_reply = _get_gemini_reply(message, history)
     if gemini_reply:
         return gemini_reply
     
-    # If Gemini fails, try web search for question-like queries
-    lowered = message.lower()
+    # If Gemini fails, try web search ONLY for knowledge questions
     is_question = any(lowered.startswith(q) for q in ['what is', 'what are', 'who is', 'who are', 'when was', 'where is', 'how does', 'why does', 'define', 'explain', 'tell me about'])
     
     if is_question:
@@ -439,17 +462,7 @@ def _choose_reply(message: str, history: List[Dict[str, str]]) -> str:
             return "Perfect! I'll play a random popular English song for you on YouTube. Enjoy!"
         return "I can play Hindi, Bengali, or English songs for you! Just specify the language, or I'll pick a great Hindi song. Enjoy!"
 
-    # Productivity and motivation
-    if "motivat" in lowered or "motivation" in lowered or "inspire" in lowered:
-        motivational_quotes = [
-            "You've got this! Break the task into one focused step, get that done, and the momentum will follow. Small wins lead to big victories. What would you like to tackle first?",
-            "Your future self will thank you for getting started today. Every expert was once a beginner who refused to give up. Let's take the first step together!",
-            "Progress, not perfection. Focus on doing one thing well right now, and build from there. You have everything you need to succeed!",
-            "Remember: the best time to start was yesterday, the second best time is now. Don't wait for perfect conditions - create them! Let's make today count!",
-            "Success is the sum of small efforts repeated day in and day out. You're already making progress by being here. Keep going!"
-        ]
-        return random.choice(motivational_quotes)
-
+    # Stress and wellness (additional patterns)
     if "stress" in lowered or "overwhelm" in lowered or "stressed" in lowered or "anxious" in lowered:
         return (
             "I hear you - stress happens to everyone. Let's tackle this together. Here's what helps: "

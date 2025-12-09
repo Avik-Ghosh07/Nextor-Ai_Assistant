@@ -45,12 +45,26 @@ body {
     50% { transform: scale(1.1); opacity: 0.5; } 
 }
 
+@keyframes shimmer {
+    0% { background-position: -1000px 0; }
+    100% { background-position: 1000px 0; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
 .animate-float { 
     animation: float 8s ease-in-out infinite; 
 }
 
 .animate-slide-up { 
     animation: slide-up 0.4s ease-out forwards; 
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.5s ease-out forwards;
 }
 
 /* ===========================
@@ -60,6 +74,12 @@ body {
     background: rgb(35, 41, 50); 
     backdrop-filter: blur(20px); 
     border: 1px solid rgba(44, 52, 62, 0.3); 
+    transition: all 0.3s ease;
+}
+
+.glass-effect:hover {
+    border-color: rgba(59, 130, 246, 0.3);
+    box-shadow: 0 8px 32px rgba(59, 130, 246, 0.1);
 }
 
 /* ===========================
@@ -85,7 +105,7 @@ body {
     border: 1px solid rgba(75, 85, 99, 0.5);
     font-size: 0.875rem;
     font-weight: 500;
-    transition: all 0.3s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -96,8 +116,8 @@ body {
 .chip:hover {
     background: rgba(75, 85, 99, 0.8);
     border-color: #9ca3af;
-    transform: scale(1.05);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
 }
 
 /* Quick Command Buttons */
@@ -110,7 +130,7 @@ body {
     background: rgba(31, 41, 55, 0.4);
     border: 1px solid rgba(75, 85, 99, 0.3);
     border-radius: 1rem;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     color: white;
     font-size: 0.875rem;
@@ -120,8 +140,12 @@ body {
 .quick-cmd-btn:hover {
     background: rgba(55, 65, 81, 0.6);
     border-color: rgba(139, 92, 246, 0.5);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(139, 92, 246, 0.2);
+}
+
+.quick-cmd-btn:active {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
 }
 
 .quick-cmd-btn .cmd-icon {
@@ -231,10 +255,11 @@ body {
 .custom-scrollbar::-webkit-scrollbar-thumb { 
     background: rgba(107, 114, 128, 0.6); 
     border-radius: 10px; 
+    transition: background 0.3s ease;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover { 
-    background: rgba(107, 114, 128, 0.8); 
+    background: rgba(139, 92, 246, 0.8); 
 }
 
 /* ===========================

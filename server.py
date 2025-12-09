@@ -415,7 +415,7 @@ def _choose_reply(message: str, history: List[Dict[str, str]]) -> str:
         ]
         return random.choice(tips)
     
-    if any(keyword in lowered for keyword in ['motivat me', 'motivation', 'inspire', 'quote', 'motivational quote', 'tell me some motivation', 'give me some motivational quote', 'motivational']):
+    if any(keyword in lowered for keyword in ['motivate me', 'motivation', 'inspire', 'quote', 'motivational quote', 'tell me some motivation', 'give me some motivational quote', 'give me some motivation']):
         quotes = [
             "You've got this! Break the task into one focused step, get that done, and the momentum will follow. Small wins lead to big victories.",
             "Your future self will thank you for getting started today. Every expert was once a beginner who refused to give up.",

@@ -1821,6 +1821,129 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // ===========================
+    // TEXT CHAT FUNCTIONALITY
+    // ===========================
+    
+    const chatInput = document.getElementById('chat-input');
+    const sendChatBtn = document.getElementById('send-chat');
+    const clearChatBtn = document.getElementById('clear-chat');
+    const chatMessages = document.getElementById('chat-messages');
+    
+    // Function to add chat message to UI
+    function addChatMessage(role, text) {
+        // Remove placeholder if exists
+        const placeholder = chatMessages.querySelector('.text-center');
+        if (placeholder) {
+            placeholder.remove();
+        }
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `chat-message ${role}`;
+        
+        const bubbleDiv = document.createElement('div');
+        bubbleDiv.className = `message-bubble ${role}`;
+        
+        if (role === 'bot') {
+            bubbleDiv.innerHTML = `<i class="fas fa-robot bot-icon"></i>${text}`;
+        } else {
+            bubbleDiv.textContent = text;
+        }
+        
+        messageDiv.appendChild(bubbleDiv);
+        chatMessages.appendChild(messageDiv);
+        
+        // Auto-scroll to bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    // Function to show typing indicator
+    function showTypingIndicator() {
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'chat-message bot typing-indicator-container';
+        typingDiv.id = 'typing-indicator';
+        typingDiv.innerHTML = `
+            <div class="message-bubble bot typing-indicator">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        `;
+        chatMessages.appendChild(typingDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    // Function to remove typing indicator
+    function removeTypingIndicator() {
+        const typingIndicator = document.getElementById('typing-indicator');
+        if (typingIndicator) {
+            typingIndicator.remove();
+        }
+    }
+    
+    // Function to send text chat message
+    async function sendTextChatMessage() {
+        const message = chatInput.value.trim();
+        if (!message) return;
+        
+        // Add user message to chat
+        addChatMessage('user', message);
+        chatInput.value = '';
+        
+        // Show typing indicator
+        showTypingIndicator();
+        
+        try {
+            // Use the same handleCommands function for consistency
+            const reply = await fetchChatReply(message);
+            
+            // Remove typing indicator
+            removeTypingIndicator();
+            
+            // Add bot response
+            if (reply) {
+                addChatMessage('bot', reply);
+            } else {
+                addChatMessage('bot', "I'm not sure how to respond to that. Try asking me something else!");
+            }
+        } catch (error) {
+            console.error('Error sending text chat:', error);
+            removeTypingIndicator();
+            addChatMessage('bot', "Sorry, I encountered an error. Please try again.");
+        }
+    }
+    
+    // Send button click handler
+    if (sendChatBtn) {
+        sendChatBtn.addEventListener('click', sendTextChatMessage);
+    }
+    
+    // Enter key handler for chat input
+    if (chatInput) {
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendTextChatMessage();
+            }
+        });
+    }
+    
+    // Clear chat button handler
+    if (clearChatBtn) {
+        clearChatBtn.addEventListener('click', () => {
+            // Clear all messages
+            chatMessages.innerHTML = `
+                <div class="text-center py-8">
+                    <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-purple-500/20 flex items-center justify-center">
+                        <i class="fas fa-robot text-purple-400 text-xl"></i>
+                    </div>
+                    <p class="text-gray-400 text-sm font-medium">Start chatting with Nextor</p>
+                    <p class="text-gray-500 text-xs mt-1">Type your message below</p>
+                </div>
+            `;
+        });
+    }
+    
     // Log successful initialization
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {

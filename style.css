@@ -478,10 +478,21 @@ body {
         gap: 2rem;
     }
     
-    /* Full height chat panel */
+    /* Ensure grid columns are equal width */
+    .grid.lg\:grid-cols-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1.5rem;
+    }
+    
+    /* Chat messages height */
     #chat-messages {
-        min-height: 500px !important;
-        max-height: none !important;
+        max-height: 450px !important;
+    }
+    
+    /* Weather and reminder panels should match height */
+    .glass-effect {
+        display: flex;
+        flex-direction: column;
     }
 }
 
@@ -501,10 +512,21 @@ body {
     .glass-effect {
         padding: 2rem !important;
     }
+    
+    /* Equal grid columns */
+    .grid.lg\:grid-cols-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 2rem;
+    }
 
     /* Conversation log spacing */
     #conversation-log {
         max-height: 500px;
+    }
+    
+    /* Chat messages height for large screens */
+    #chat-messages {
+        max-height: 500px !important;
     }
 }
 
@@ -590,6 +612,16 @@ body {
 @media (min-width: 1024px) {
     #chat-messages > div > div {
         max-width: 75%;
+    }
+    
+    /* Ensure all bottom panels are equal height on desktop */
+    .grid.lg\:grid-cols-3 > div {
+        min-height: 100%;
+    }
+    
+    /* Make panels fill available space */
+    .grid.lg\:grid-cols-3 {
+        align-items: stretch;
     }
 }
 

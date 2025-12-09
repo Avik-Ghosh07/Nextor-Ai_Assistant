@@ -81,10 +81,36 @@ document.addEventListener('DOMContentLoaded', () => {
     // Safe localStorage access with error handling
     const safeGetLocalStorage = (key, defaultValue = '{}') => {
         try {
-            return JSON.parse(localStorage.getItem(key) || defaultValue);
+            const value = localStorage.getItem(key);
+            if (!value) return JSON.parse(defaultValue);
+            // Validate JSON before parsing
+            const parsed = JSON.parse(value);
+            return parsed;
         } catch (e) {
+            console.warn(`Failed to parse localStorage key: ${key}`, e);
             return JSON.parse(defaultValue);
         }
+    };
+    
+    // Sanitize HTML to prevent XSS attacks
+    const sanitizeHTML = (str) => {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    };
+    
+    // Validate and sanitize user input
+    const validateInput = (input, maxLength = 1000) => {
+        if (typeof input !== 'string') return '';
+        // Remove any HTML tags
+        let sanitized = input.replace(/<[^>]*>/g, '');
+        // Remove script and event handlers
+        sanitized = sanitized.replace(/on\w+\s*=/gi, '');
+        // Remove javascript: and data: protocols
+        sanitized = sanitized.replace(/javascript:/gi, '').replace(/data:/gi, '');
+        // Trim and limit length
+        sanitized = sanitized.trim().substring(0, maxLength);
+        return sanitized;
     };
     
     const knowledge = safeGetLocalStorage('nextor_knowledge', '{}');
@@ -1883,11 +1909,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Function to send text chat message
     async function sendTextChatMessage() {
-        const message = chatInput.value.trim();
-        if (!message) return;
+        const message = validateInput(chatInput.value.trim(), 1000);
+        if (!message || message.length < 1) return;
         
         // Add user message to chat
-        addChatMessage('user', message);
+        addChatMessage('user', sanitizeHTML(message));
         chatInput.value = '';
         
         // Show typing indicator
@@ -1902,7 +1928,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Add bot response
             if (reply) {
-                addChatMessage('bot', reply);
+                addChatMessage('bot', sanitizeHTML(reply));
             } else {
                 addChatMessage('bot', "I'm not sure how to respond to that. Try asking me something else!");
             }

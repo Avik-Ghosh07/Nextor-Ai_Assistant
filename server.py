@@ -35,6 +35,33 @@ CORS(app, resources={
 # Security configurations
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024  # 16KB max request size
 app.config['JSON_SORT_KEYS'] = False
+app.config['SESSION_COOKIE_SECURE'] = True  # HTTPS only
+app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent XSS
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF protection
+
+# Add security headers to all responses
+@app.after_request
+def add_security_headers(response):
+    # Content Security Policy
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; "
+        "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+        "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self' https://api.open-meteo.com https://geocoding-api.open-meteo.com; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self';"
+    )
+    # Additional security headers
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Permissions-Policy'] = 'geolocation=(self), microphone=(self), camera=()'
+    return response
 
 # Rate limiting (simple in-memory tracker)
 request_tracker = {}
@@ -238,6 +265,17 @@ def get_weather():
 
 
 def _clean_message(message: str) -> str:
+    """Sanitize message input to prevent XSS and injection attacks."""
+    # Remove any HTML tags
+    message = re.sub(r'<[^>]+>', '', message)
+    # Remove script tags and event handlers
+    message = re.sub(r'on\w+\s*=', '', message, flags=re.IGNORECASE)
+    # Remove javascript: protocol
+    message = re.sub(r'javascript:', '', message, flags=re.IGNORECASE)
+    # Remove data: protocol
+    message = re.sub(r'data:', '', message, flags=re.IGNORECASE)
+    # Limit to printable ASCII and common Unicode
+    message = ''.join(char for char in message if char.isprintable() or char.isspace())
     return message.strip()
 
 
@@ -589,15 +627,36 @@ def chat():
             return jsonify({"error": "Invalid JSON payload"}), 400
         
         message = _clean_message(str(data.get("message", "")))
-        if not message or len(message) > 1000:
-            return jsonify({"error": "Message must be between 1 and 1000 characters"}), 400
+        
+        # Strict validation
+        if not message:
+            return jsonify({"error": "Message cannot be empty"}), 400
+        if len(message) > 1000:
+            return jsonify({"error": "Message too long (max 1000 characters)"}), 400
+        if len(message) < 1:
+            return jsonify({"error": "Message too short"}), 400
+        
+        # Validate message doesn't contain suspicious patterns
+        suspicious_patterns = [r'<script', r'javascript:', r'onerror=', r'onclick=', r'eval\(']
+        for pattern in suspicious_patterns:
+            if re.search(pattern, message, re.IGNORECASE):
+                return jsonify({"error": "Invalid message content"}), 400
         
         history = data.get("history") or []
         if not isinstance(history, list):
             history = []
         
-        # Limit history size
-        history = history[-10:] if len(history) > 10 else history
+        # Validate history items
+        validated_history = []
+        for item in history[-10:]:  # Limit to last 10
+            if isinstance(item, dict) and 'role' in item and 'text' in item:
+                if item['role'] in ['user', 'assistant']:
+                    validated_history.append({
+                        'role': item['role'],
+                        'text': _clean_message(str(item['text']))[:500]  # Limit history text
+                    })
+        
+        history = validated_history
         
         # Get reply
         reply = _choose_reply(message, history)
@@ -610,11 +669,11 @@ def chat():
 
 @app.get("/api/health")
 def health():
+    """Health check endpoint with minimal information disclosure."""
     return jsonify({
         "status": "healthy",
-        "gemini_available": gemini_model is not None,
-        "timestamp": dt.datetime.now().isoformat()
-    })
+        "timestamp": dt.datetime.now(dt.timezone.utc).isoformat()
+    }), 200
 
 
 if __name__ == "__main__":

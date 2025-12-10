@@ -92,6 +92,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
+    // Safe localStorage write with error handling for QuotaExceededError
+    const safeSetLocalStorage = (key, value) => {
+        try {
+            const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
+            localStorage.setItem(key, stringValue);
+            return true;
+        } catch (e) {
+            if (e.name === 'QuotaExceededError') {
+                console.warn('LocalStorage quota exceeded. Clearing old data...');
+                // Try to free up space by removing old conversations
+                try {
+                    localStorage.removeItem('nextor_conversations');
+                    localStorage.setItem(key, stringValue);
+                    return true;
+                } catch (retryError) {
+                    console.error('Failed to save to localStorage even after cleanup:', retryError);
+                    return false;
+                }
+            } else {
+                console.error(`Failed to write localStorage key: ${key}`, e);
+                return false;
+            }
+        }
+    };
+    
     // Sanitize HTML to prevent XSS attacks
     const sanitizeHTML = (str) => {
         const div = document.createElement('div');
@@ -127,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentUser = 'Guest';
         if (!users['Guest']) {
             users['Guest'] = { username: 'Guest', history: [], todos: [], reminders: [] };
-            localStorage.setItem('nextor_users', JSON.stringify(users));
+            safeSetLocalStorage('nextor_users', JSON.stringify(users));
         }
     }
 
@@ -190,14 +215,14 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             // Keep only last 50 conversations to prevent localStorage overflow
             const toSave = conversationHistory.slice(-MAX_STORAGE_CONVERSATIONS);
-            localStorage.setItem('nextor_conversations', JSON.stringify(toSave));
+            safeSetLocalStorage('nextor_conversations', JSON.stringify(toSave));
         } catch (error) {
             // If quota exceeded, clear old data and retry
             if (error.name === 'QuotaExceededError') {
                 localStorage.removeItem('nextor_conversations');
                 conversationHistory = conversationHistory.slice(-MAX_HISTORY);
                 try {
-                    localStorage.setItem('nextor_conversations', JSON.stringify(conversationHistory));
+                    safeSetLocalStorage('nextor_conversations', JSON.stringify(conversationHistory));
                 } catch (e) {
                     // Still failing, give up silently
                 }
@@ -301,17 +326,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 150);
     }
 
-    function openWebsite(url, speakText) {
+    function openWebsite(url, speakText, appScheme = null) {
         speak(speakText);
-        window.open(url, '_blank');
+        
+        // On mobile, try to open native app first using deep link
+        if (appScheme && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+            let appOpened = false;
+            
+            // Detect if app opened by checking if page loses focus
+            const handleBlur = () => {
+                appOpened = true;
+                window.removeEventListener('blur', handleBlur);
+            };
+            window.addEventListener('blur', handleBlur);
+            
+            // Try app scheme first
+            window.location.href = appScheme;
+            
+            // Fallback to web URL only if app didn't open
+            setTimeout(() => {
+                window.removeEventListener('blur', handleBlur);
+                if (!appOpened) {
+                    window.open(url, '_blank');
+                }
+            }, 1500);
+        } else {
+            // Desktop or no app scheme - just open web URL
+            window.open(url, '_blank');
+        }
     }
 
     function saveKnowledge() {
-        localStorage.setItem('nextor_knowledge', JSON.stringify(knowledge));
+        safeSetLocalStorage('nextor_knowledge', JSON.stringify(knowledge));
     }
 
     function saveReminders() {
-        localStorage.setItem('nextor_reminders', JSON.stringify(reminders));
+        safeSetLocalStorage('nextor_reminders', JSON.stringify(reminders));
     }
 
     function parseTimeToDate(timeStr) {
@@ -913,7 +963,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             console.log('📤 Sending to chat API:', `${API_BASE_URL}/api/chat`, payload);
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+            const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout for faster response
             
             const response = await fetch(`${API_BASE_URL}/api/chat`, {
                 method: 'POST',
@@ -1014,9 +1064,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Core command handling ---
+    // Website and app URLs with mobile deep links
     const websiteMap = {
         youtube: 'https://www.youtube.com',
-        whatsapp: 'https://www.whatsapp.com',
+        whatsapp: 'https://wa.me/', // Opens WhatsApp on mobile
         instagram: 'https://www.instagram.com',
         facebook: 'https://www.facebook.com',
         google: 'https://www.google.com',
@@ -1033,6 +1084,19 @@ document.addEventListener('DOMContentLoaded', () => {
         outlook: 'https://outlook.live.com',
         spotify: 'https://open.spotify.com',
         twitch: 'https://www.twitch.tv'
+    };
+    
+    // Mobile app deep link schemes (will prompt to open app if installed)
+    const mobileAppSchemes = {
+        youtube: 'vnd.youtube://',
+        whatsapp: 'whatsapp://',
+        instagram: 'instagram://',
+        facebook: 'fb://',
+        netflix: 'netflix://',
+        spotify: 'spotify://',
+        gmail: 'googlegmail://',
+        twitter: 'twitter://',
+        linkedin: 'linkedin://'
     };
 
     const tips = [
@@ -1234,8 +1298,8 @@ document.addEventListener('DOMContentLoaded', () => {
             todos = todos.filter(t => !t.completed);
             const removedCount = beforeCount - todos.length;
             users[currentUser].todos = todos;
-            localStorage.setItem('nextor_users', JSON.stringify(users));
-            localStorage.setItem('nextor_todos', JSON.stringify(todos));
+            safeSetLocalStorage('nextor_users', JSON.stringify(users));
+            safeSetLocalStorage('nextor_todos', JSON.stringify(todos));
             renderTodos();
             speak(`Removed ${removedCount} completed task${removedCount !== 1 ? 's' : ''}.`);
         },
@@ -1390,7 +1454,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Check if it's a known website
             if (siteName && siteName.length > 0) {
                 const url = websiteMap[siteName] || (siteName.includes('.') ? (siteName.startsWith('http') ? siteName : `https://${siteName}`) : `https://www.${siteName}.com`);
-                openWebsite(url, `Opening ${siteName}...`);
+                const appScheme = mobileAppSchemes[siteName] || null;
+                openWebsite(url, `Opening ${siteName}...`, appScheme);
                 handled = true;
             }
         } 
@@ -1920,18 +1985,106 @@ document.addEventListener('DOMContentLoaded', () => {
         showTypingIndicator();
         
         try {
-            // Use the same handleCommands function for consistency
-            const reply = await fetchChatReply(message);
+            // Process message through command handler (includes math, knowledge, AI, etc.)
+            const command = message.toLowerCase().trim();
+            let response = '';
+            let handled = false;
+            
+            // Check for math expressions
+            let mathExpression = '';
+            
+            // First check for natural language math (6 into 5, 3 plus 2, etc.)
+            const hasNaturalMath = /\b(plus|minus|times|multiplied|divided|divide|over|into|x)\b/i.test(command);
+            const hasNumbers = /\d/.test(command);
+            
+            if (command.startsWith('calculate') || command.startsWith('what')) {
+                // Extract expression after trigger words
+                mathExpression = command
+                    .replace(/^calculate\s*/i, '')
+                    .replace(/^(what is|what's|whats)\s*/i, '')
+                    .trim();
+                
+                // Check if it contains math keywords or is a pure math expression
+                const hasMathKeywords = /\b(plus|minus|times|multiplied|divided|divide|over|into|x)\b/i.test(mathExpression);
+                const mathNumbers = /\d/.test(mathExpression);
+                const isPureMath = /^[\d+\-*/.() ]+$/.test(mathExpression);
+                
+                // Only treat as math if it has numbers and either math keywords or is pure math expression
+                if (!mathNumbers || (!hasMathKeywords && !isPureMath)) {
+                    mathExpression = '';
+                }
+            } else if (hasNumbers && hasNaturalMath) {
+                // Natural language math like "6 into 5", "3 times 4"
+                mathExpression = command;
+            } else if (/^[\d+\-*/.() ]+$/.test(command)) {
+                // Direct math expression like "5-4", "2+3", etc.
+                mathExpression = command;
+            }
+            
+            if (mathExpression) {
+                try {
+                    // Replace natural language with operators
+                    mathExpression = mathExpression
+                        .replace(/\bx\b/gi, '*')
+                        .replace(/plus/gi, '+')
+                        .replace(/minus/gi, '-')
+                        .replace(/times/gi, '*')
+                        .replace(/multiplied\s*by/gi, '*')
+                        .replace(/into/gi, '*')
+                        .replace(/divided\s*by/gi, '/')
+                        .replace(/divide\s*by/gi, '/')
+                        .replace(/over/gi, '/')
+                        .replace(/\s+/g, '');
+                    
+                    // Validate it's a safe math expression
+                    if (!/^[\d+\-*/.()]+$/.test(mathExpression)) {
+                        throw new Error('Invalid characters in expression');
+                    }
+                    
+                    // Evaluate the expression
+                    const result = Function('"use strict"; return (' + mathExpression + ')')();
+                    const finalResult = Number.isInteger(result) ? result : Math.round(result * 100) / 100;
+                    
+                    response = `The answer is ${finalResult}`;
+                    handled = true;
+                } catch (error) {
+                    console.log('Math evaluation failed:', error.message);
+                    // Don't set handled = true, let it fall through to other handlers
+                }
+            }
+            
+            // Check built-in knowledge patterns first
+            if (!handled) {
+                const fallbackResponse = getOfflineFallbackResponse(message);
+                if (fallbackResponse) {
+                    response = fallbackResponse;
+                    handled = true;
+                }
+            }
+            
+            // Try AI backend
+            if (!handled) {
+                response = await fetchChatReply(message);
+                if (response) {
+                    console.log('📝 AI Response:', response);
+                    handled = true;
+                }
+            }
+            
+            // Final fallback
+            if (!handled || !response) {
+                response = "I'm not sure about that. Let me search the web for you.";
+                setTimeout(() => {
+                    window.open(`https://www.google.com/search?q=${encodeURIComponent(message)}`, '_blank');
+                }, 1000);
+            }
             
             // Remove typing indicator
             removeTypingIndicator();
             
             // Add bot response
-            if (reply) {
-                addChatMessage('bot', sanitizeHTML(reply));
-            } else {
-                addChatMessage('bot', "I'm not sure how to respond to that. Try asking me something else!");
-            }
+            addChatMessage('bot', sanitizeHTML(response));
+            
         } catch (error) {
             console.error('Error sending text chat:', error);
             removeTypingIndicator();
@@ -2042,8 +2195,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             currentUser = username;
-            localStorage.setItem('nextor_current_user', JSON.stringify(currentUser));
-            localStorage.setItem('nextor_users', JSON.stringify(users));
+            safeSetLocalStorage('nextor_current_user', JSON.stringify(currentUser));
+            safeSetLocalStorage('nextor_users', JSON.stringify(users));
             
             // Update UI
             if (userDisplayName) userDisplayName.textContent = currentUser;
@@ -2080,11 +2233,11 @@ document.addEventListener('DOMContentLoaded', () => {
             users[currentUser].history = conversationHistory;
             users[currentUser].todos = todos;
             users[currentUser].reminders = reminders;
-            localStorage.setItem('nextor_users', JSON.stringify(users));
+            safeSetLocalStorage('nextor_users', JSON.stringify(users));
             
             // Logout to guest
             currentUser = 'Guest';
-            localStorage.setItem('nextor_current_user', JSON.stringify(currentUser));
+            safeSetLocalStorage('nextor_current_user', JSON.stringify(currentUser));
             
             // Load guest data
             conversationHistory = users['Guest'].history || [];
@@ -2180,8 +2333,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Save to user data
         users[currentUser].todos = todos;
-        localStorage.setItem('nextor_users', JSON.stringify(users));
-        localStorage.setItem('nextor_todos', JSON.stringify(todos));
+        safeSetLocalStorage('nextor_users', JSON.stringify(users));
+        safeSetLocalStorage('nextor_todos', JSON.stringify(todos));
         
         renderTodos();
     }
@@ -2190,8 +2343,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (todos[index]) {
             todos[index].completed = !todos[index].completed;
             users[currentUser].todos = todos;
-            localStorage.setItem('nextor_users', JSON.stringify(users));
-            localStorage.setItem('nextor_todos', JSON.stringify(todos));
+            safeSetLocalStorage('nextor_users', JSON.stringify(users));
+            safeSetLocalStorage('nextor_todos', JSON.stringify(todos));
             renderTodos();
             
             if (todos[index].completed) {
@@ -2205,8 +2358,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const task = todos[index].task;
             todos.splice(index, 1);
             users[currentUser].todos = todos;
-            localStorage.setItem('nextor_users', JSON.stringify(users));
-            localStorage.setItem('nextor_todos', JSON.stringify(todos));
+            safeSetLocalStorage('nextor_users', JSON.stringify(users));
+            safeSetLocalStorage('nextor_todos', JSON.stringify(todos));
             renderTodos();
             speak(`Task deleted: ${task}`);
         }
@@ -2285,8 +2438,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             reminders.push(reminder);
             users[currentUser].reminders = reminders;
-            localStorage.setItem('nextor_reminders', JSON.stringify(reminders));
-            localStorage.setItem('nextor_users', JSON.stringify(users));
+            safeSetLocalStorage('nextor_reminders', JSON.stringify(reminders));
+            safeSetLocalStorage('nextor_users', JSON.stringify(users));
             
             scheduleReminder(reminder, reminders.length - 1);
             renderReminders();

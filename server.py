@@ -280,58 +280,104 @@ def _clean_message(message: str) -> str:
 
 
 def _search_web(query: str) -> str | None:
-    """Search the web using DuckDuckGo Instant Answer API. Returns summary or None."""
+    """Search the web using Wikipedia API for factual queries, fallback to Google scraping."""
     try:
         print(f"🔍 Searching web for: {query}")
-        params = {
-            'q': query,
-            'format': 'json',
-            'no_html': 1,
-            'skip_disambig': 1
+        
+        # First try Wikipedia API for factual queries (works great for "who is", "what is")
+        try:
+            # Extract the subject from the query
+            search_term = query.lower()
+            search_term = search_term.replace('who is ', '').replace('who are ', '')
+            search_term = search_term.replace('what is ', '').replace('what are ', '')
+            search_term = search_term.replace('where is ', '').replace('where are ', '')
+            search_term = search_term.replace('when was ', '').replace('when is ', '')
+            search_term = search_term.strip()
+            
+            # Common name mappings
+            name_mappings = {
+                'amazon forest': 'Amazon rainforest',
+                'amazon jungle': 'Amazon rainforest',
+                'amazon': 'Amazon rainforest',
+            }
+            
+            # Use mapped name if available
+            wiki_title = name_mappings.get(search_term, search_term)
+            
+            wiki_url = "https://en.wikipedia.org/w/api.php"
+            wiki_params = {
+                'action': 'query',
+                'format': 'json',
+                'prop': 'extracts',
+                'exintro': True,
+                'explaintext': True,
+                'redirects': 1,
+                'titles': wiki_title
+            }
+            
+            # Wikipedia requires User-Agent header
+            headers = {
+                'User-Agent': 'NextorAI/1.0 (Educational Project; Python/requests)'
+            }
+            
+            wiki_response = requests.get(wiki_url, params=wiki_params, headers=headers, timeout=5)
+            wiki_response.raise_for_status()
+            wiki_data = wiki_response.json()
+            
+            pages = wiki_data.get('query', {}).get('pages', {})
+            for page_id, page in pages.items():
+                if page_id != '-1' and 'extract' in page:
+                    extract = page['extract'].strip()
+                    if extract and len(extract) > 50:
+                        # Limit to first 2-3 sentences
+                        sentences = extract.split('. ')[:3]
+                        answer = '. '.join(sentences)
+                        if not answer.endswith('.'):
+                            answer += '.'
+                        # Limit length
+                        if len(answer) > 500:
+                            answer = answer[:497] + "..."
+                        print(f"✅ Found Wikipedia answer")
+                        return answer
+        except Exception as wiki_error:
+            print(f"⚠️ Wikipedia search failed: {wiki_error}")
+        
+        # Fallback to Google search scraping
+        print(f"🔍 Trying Google search...")
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
         
-        response = requests.get(DUCKDUCKGO_INSTANT_ANSWER_URL, params=params, timeout=5)
+        search_url = f"https://www.google.com/search?q={requests.utils.quote(query)}"
+        response = requests.get(search_url, headers=headers, timeout=5)
         response.raise_for_status()
-        data = response.json()
         
-        # Try different answer fields in order of preference
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Try multiple selectors
         answer = None
         
-        # Abstract (best for "what is" questions)
-        if data.get('Abstract'):
-            answer = data['Abstract']
-            source = data.get('AbstractSource', 'web')
-            print(f"✅ Found abstract from {source}")
-        
-        # Definition (for dictionary-like queries)
-        elif data.get('Definition'):
-            answer = data['Definition']
-            source = data.get('DefinitionSource', 'web')
-            print(f"✅ Found definition from {source}")
-        
-        # Answer (direct answers like calculations, conversions)
-        elif data.get('Answer'):
-            answer = data['Answer']
-            print(f"✅ Found direct answer")
-        
-        # Related topics (fallback)
-        elif data.get('RelatedTopics') and len(data['RelatedTopics']) > 0:
-            first_topic = data['RelatedTopics'][0]
-            if isinstance(first_topic, dict) and first_topic.get('Text'):
-                answer = first_topic['Text']
-                print(f"✅ Found related topic answer")
+        # Featured snippet
+        for selector in ['div.hgKElc', 'span.hgKElc', 'div.IZ6rdc', 'span.aCOpRe']:
+            element = soup.find(class_=selector.split('.')[-1])
+            if element:
+                answer = element.get_text(strip=True)
+                print(f"✅ Found Google answer with selector: {selector}")
+                break
         
         if answer:
-            # Clean up the answer
-            answer = answer.strip()
-            # Limit to reasonable length for voice
+            answer = answer.strip().replace('Wikipedia', '').strip()
             if len(answer) > 500:
                 answer = answer[:497] + "..."
             return answer
         
-        print(f"⚠️ No instant answer found for: {query}")
+        print(f"⚠️ No web answer found for: {query}")
         return None
         
+    except ImportError:
+        print(f"❌ BeautifulSoup not installed")
+        return None
     except Exception as e:
         print(f"❌ Web search error: {e}")
         return None
@@ -340,7 +386,7 @@ def _search_web(query: str) -> str | None:
 def _get_gemini_reply(message: str, history: List[Dict[str, str]]) -> str | None:
     """Get AI response from Gemini with timeout. Returns None if unavailable or fails."""
     if not gemini_model:
-        print("⚠️ Gemini model not available")
+        print("⚠️ Gemini model not available - Check GEMINI_API_KEY in .env file")
         return None
     
     try:
@@ -410,6 +456,10 @@ def _get_builtin_knowledge(query: str) -> str | None:
         'express': "Express.js is a minimal and flexible Node.js web application framework. It provides robust features for building web and mobile applications and APIs, making it one of the most popular backend frameworks.",
         'express js': "Express.js is a minimal and flexible Node.js web application framework. It provides robust features for building web and mobile applications and APIs, making it one of the most popular backend frameworks.",
         'mongodb': "MongoDB is a NoSQL document database that stores data in flexible, JSON-like documents. It's popular for modern applications that need to handle large amounts of unstructured data with high scalability.",
+        'mern': "MERN stack is a popular JavaScript technology stack consisting of MongoDB (database), Express.js (backend framework), React (frontend library), and Node.js (runtime environment). It allows developers to build full-stack web applications using only JavaScript.",
+        'mern stack': "The MERN stack includes MongoDB for the database, Express.js for the backend framework, React for the frontend, and Node.js as the runtime environment. It's a complete JavaScript solution for full-stack web development.",
+        'mean': "MEAN stack consists of MongoDB, Express.js, Angular, and Node.js. Similar to MERN but uses Angular instead of React for the frontend framework.",
+        'mean stack': "The MEAN stack includes MongoDB for the database, Express.js for the backend framework, Angular for the frontend, and Node.js as the runtime environment.",
         'sql': "SQL (Structured Query Language) is used to manage and manipulate relational databases. It allows you to create, read, update, and delete data efficiently in databases like MySQL, PostgreSQL, and SQL Server.",
         'git': "Git is a distributed version control system used to track changes in source code during software development. It helps developers collaborate, manage different versions of projects, and maintain code history.",
         'github': "GitHub is a web-based platform for version control using Git. It provides hosting for software development and enables collaboration, code sharing, project management, and open-source contribution.",
@@ -424,11 +474,21 @@ def _get_builtin_knowledge(query: str) -> str | None:
         'artificial intelligence': "Artificial Intelligence refers to computer systems that can perform tasks requiring human intelligence, such as visual perception, speech recognition, decision-making, and language translation.",
     }
     
-    # Check for exact or partial matches
+    # Check for exact matches with word boundaries to avoid false positives
+    # e.g., 'ai' shouldn't match 'Pichai', 'react' shouldn't match 'create'
     for keyword, answer in knowledge_base.items():
-        if keyword in query_lower:
-            print(f"✅ Using built-in knowledge for: {keyword}")
-            return answer
+        # Use word boundaries for single words, exact match for multi-word phrases
+        if ' ' in keyword:
+            # Multi-word phrase - exact match
+            if keyword in query_lower:
+                print(f"✅ Using built-in knowledge for: {keyword}")
+                return answer
+        else:
+            # Single word - use word boundaries
+            pattern = r'\b' + re.escape(keyword) + r'\b'
+            if re.search(pattern, query_lower):
+                print(f"✅ Using built-in knowledge for: {keyword}")
+                return answer
     
     return None
 
@@ -466,25 +526,43 @@ def _choose_reply(message: str, history: List[Dict[str, str]]) -> str:
         ]
         return random.choice(quotes)
     
-    # Try Gemini AI
+    # Try Gemini AI FIRST for all messages
+    # BUT check built-in knowledge for common tech questions first to save API quota
+    # Skip built-in knowledge for "who is" questions (about people)
+    is_question = any(lowered.startswith(q) for q in ['what is', 'what are', 'who is', 'who are', 'when was', 'where is', 'how does', 'why does', 'define', 'explain', 'tell me about','what was'])
+    is_person_question = lowered.startswith('who is') or lowered.startswith('who are')
+    
+    if is_question and not is_person_question:
+        # Try built-in knowledge first for common TECHNICAL topics (not people)
+        builtin_answer = _get_builtin_knowledge(message)
+        if builtin_answer:
+            print(f"✅ Using built-in knowledge base")
+            return builtin_answer
+    
+    # Try Gemini AI for other questions
     gemini_reply = _get_gemini_reply(message, history)
     if gemini_reply:
         return gemini_reply
     
-    # If Gemini fails, try web search ONLY for knowledge questions
-    is_question = any(lowered.startswith(q) for q in ['what is', 'what are', 'who is', 'who are', 'when was', 'where is', 'how does', 'why does', 'define', 'explain', 'tell me about'])
-    
+    # If Gemini fails, try web search for ALL questions (not just specific patterns)
     if is_question:
-        # Try built-in knowledge first for common topics
-        builtin_answer = _get_builtin_knowledge(message)
-        if builtin_answer:
-            return builtin_answer
-        
-        # Then try web search
+        # Try web search for any question
         web_answer = _search_web(message)
         if web_answer:
             print(f"✅ Using web search answer")
             return web_answer
+        else:
+            print(f"⚠️ Web search returned no results for: {message}")
+    
+    # For non-question messages when Gemini fails, also try web search
+    if not is_question:
+        # Try web search for any conversational query
+        web_answer = _search_web(message)
+        if web_answer:
+            print(f"✅ Using web search for conversational query")
+            return web_answer
+        else:
+            print(f"⚠️ Web search returned no results for: {message}")
     
     # Fallback to pattern-based responses
     print(f"⚠️ Gemini and web search unavailable, using fallback for: {message}")
@@ -604,7 +682,11 @@ def _choose_reply(message: str, history: List[Dict[str, str]]) -> str:
             "What goal would you like to work on? I can help you break it down into actionable steps."
         )
 
-    # General helpful response (removed confusing context awareness)
+    # General helpful response - but if it's a question that failed, indicate we couldn't answer
+    if is_question:
+        return f"I apologize, but I couldn't find information about '{message}'. My AI quota is currently exceeded and the web search didn't return results. Please try again later or rephrase your question."
+    
+    # For non-questions, provide general helpful response
     helpful_responses = [
         "I'm here to help you be more productive and efficient! I can assist with: productivity tips, playing music, answering questions, setting reminders, planning your day, and much more. What would you like to do?",
         "I'm Nextor, your AI productivity assistant! I can help you with time management, motivation, planning, playing music, answering questions, and staying organized. How can I assist you today?",

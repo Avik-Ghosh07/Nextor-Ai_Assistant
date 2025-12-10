@@ -391,27 +391,29 @@ def _get_gemini_reply(message: str, history: List[Dict[str, str]]) -> str | None
     
     try:
         print(f"🤖 Sending to Gemini AI: {message}")
-        # Build conversation context for Gemini
-        context = "You are a knowledgeable AI assistant. Answer questions directly and accurately. Be concise but informative. If asked about technical topics, programming, science, history, or general knowledge, provide clear explanations. Keep responses under 150 words unless more detail is requested.\n\n"
+        # Build conversation context for Gemini (minimal for speed)
+        context = "You are Nextor, an AI assistant. Answer directly and concisely in under 100 words. Be helpful and accurate.\n\n"
         
-        # Add recent conversation history (last 4 messages for faster processing)
+        # Add only last 2 messages for faster processing
         if history:
-            recent = history[-4:]
+            recent = history[-2:]
             for item in recent:
                 role = "User" if item["role"] == "user" else "Assistant"
                 context += f"{role}: {item['text']}\n"
         
         context += f"User: {message}\nAssistant:"
         
-        # Generate response with Gemini (with generation config for speed)
+        # Generate response with Gemini (optimized for speed)
         generation_config = {
             "temperature": 0.7,
-            "max_output_tokens": 256,  # Limit response length for faster replies
+            "max_output_tokens": 150,  # Reduced for faster replies
+            "top_p": 0.95,
+            "top_k": 40
         }
         response = gemini_model.generate_content(
             context,
             generation_config=generation_config,
-            request_options={"timeout": 5}  # 5 second timeout
+            request_options={"timeout": 3}  # 3 second timeout for speed
         )
         
         if response and response.text:

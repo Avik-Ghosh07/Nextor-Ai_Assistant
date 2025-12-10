@@ -954,11 +954,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Conversational intelligence ---
+    let lastHealthCheck = 0;
+    const HEALTH_CHECK_CACHE_MS = 30000; // Cache health check for 30 seconds
+    
     async function checkBackendAvailability() {
-        // Always check fresh to detect if server comes online
+        // Use cached result if checked recently
+        const now = Date.now();
+        if (backendAvailable && (now - lastHealthCheck) < HEALTH_CHECK_CACHE_MS) {
+            return true;
+        }
+        
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 2000); // Reduced to 2s
+            const timeoutId = setTimeout(() => controller.abort(), 1000); // 1s timeout
             const response = await fetch(`${API_BASE_URL}/api/health`, {
                 method: 'GET',
                 signal: controller.signal,
@@ -966,15 +974,17 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             clearTimeout(timeoutId);
             backendAvailable = response.ok;
+            lastHealthCheck = now;
             return backendAvailable;
         } catch (error) {
             backendAvailable = false;
+            lastHealthCheck = now;
             return false;
         }
     }
 
     async function fetchChatReply(message) {
-        // Check backend availability first
+        // Check backend availability first (uses cache if checked recently)
         const isAvailable = await checkBackendAvailability();
         if (!isAvailable) {
             console.warn('Chat backend is offline, using fallback responses');
@@ -985,11 +995,11 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const payload = {
                 message,
-                history: conversationHistory.slice(-8).map(({ role, text }) => ({ role, text }))
+                history: conversationHistory.slice(-6).map(({ role, text }) => ({ role, text })) // Reduced to 6 for speed
             };
             console.log('📤 Sending to chat API:', `${API_BASE_URL}/api/chat`, payload);
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout for faster response
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
             
             const response = await fetch(`${API_BASE_URL}/api/chat`, {
                 method: 'POST',

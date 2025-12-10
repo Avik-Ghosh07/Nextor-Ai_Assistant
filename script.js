@@ -138,6 +138,58 @@ document.addEventListener('DOMContentLoaded', () => {
         return sanitized;
     };
     
+    // Safe math evaluator for mobile browsers that block Function() and eval()
+    const safeMathEval = (expr) => {
+        // Remove all spaces
+        expr = expr.replace(/\s+/g, '');
+        
+        // Simple recursive descent parser for basic arithmetic
+        let pos = 0;
+        
+        const peek = () => expr[pos];
+        const consume = () => expr[pos++];
+        
+        const parseNumber = () => {
+            let num = '';
+            while (pos < expr.length && (peek().match(/[0-9.]/) || (peek() === '-' && num === ''))) {
+                num += consume();
+            }
+            return parseFloat(num);
+        };
+        
+        const parseFactor = () => {
+            if (peek() === '(') {
+                consume(); // '('
+                const result = parseExpression();
+                consume(); // ')'
+                return result;
+            }
+            return parseNumber();
+        };
+        
+        const parseTerm = () => {
+            let result = parseFactor();
+            while (pos < expr.length && (peek() === '*' || peek() === '/')) {
+                const op = consume();
+                const right = parseFactor();
+                result = op === '*' ? result * right : result / right;
+            }
+            return result;
+        };
+        
+        const parseExpression = () => {
+            let result = parseTerm();
+            while (pos < expr.length && (peek() === '+' || peek() === '-')) {
+                const op = consume();
+                const right = parseTerm();
+                result = op === '+' ? result + right : result - right;
+            }
+            return result;
+        };
+        
+        return parseExpression();
+    };
+    
     const knowledge = safeGetLocalStorage('nextor_knowledge', '{}');
     let reminders = safeGetLocalStorage('nextor_reminders', '[]');
     const activeTimeouts = new Map();
@@ -1652,14 +1704,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         throw new Error('Invalid characters in expression');
                     }
                     
-                    // Evaluate with fallback for mobile browsers
+                    // Evaluate with multiple fallbacks for mobile browsers
                     let result;
                     try {
                         result = Function('"use strict"; return (' + mathExpression + ')')();
                     } catch (funcError) {
-                        // Fallback to eval for mobile browsers that block Function()
-                        console.log('Function() blocked, using eval() fallback');
-                        result = eval(mathExpression);
+                        console.log('Function() blocked, trying eval()');
+                        try {
+                            result = eval(mathExpression);
+                        } catch (evalError) {
+                            console.log('eval() also blocked, using manual parser');
+                            result = safeMathEval(mathExpression);
+                        }
                     }
                     
                     // Round to 2 decimal places if needed
@@ -2086,14 +2142,21 @@ document.addEventListener('DOMContentLoaded', () => {
                         throw new Error('Invalid characters in expression');
                     }
                     
-                    // Evaluate the expression (with fallback for mobile browsers)
+                    // Evaluate the expression (with multiple fallbacks for mobile browsers)
                     let result;
                     try {
+                        // Try Function() first
                         result = Function('"use strict"; return (' + mathExpression + ')')();
                     } catch (funcError) {
-                        // Fallback to eval for mobile browsers that block Function()
-                        console.log('Function() blocked, using eval() fallback');
-                        result = eval(mathExpression);
+                        console.log('Function() blocked, trying eval()');
+                        try {
+                            // Try eval as fallback
+                            result = eval(mathExpression);
+                        } catch (evalError) {
+                            console.log('eval() also blocked, using manual parser');
+                            // Last resort: use safer math parser
+                            result = safeMathEval(mathExpression);
+                        }
                     }
                     const finalResult = Number.isInteger(result) ? result : Math.round(result * 100) / 100;
                     

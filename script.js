@@ -140,54 +140,122 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Safe math evaluator for mobile browsers that block Function() and eval()
     const safeMathEval = (expr) => {
-        // Remove all spaces
-        expr = expr.replace(/\s+/g, '');
-        
-        // Simple recursive descent parser for basic arithmetic
-        let pos = 0;
-        
-        const peek = () => expr[pos];
-        const consume = () => expr[pos++];
-        
-        const parseNumber = () => {
-            let num = '';
-            while (pos < expr.length && (peek().match(/[0-9.]/) || (peek() === '-' && num === ''))) {
-                num += consume();
+        try {
+            // Remove all spaces
+            expr = expr.replace(/\s+/g, '');
+            
+            if (!expr || expr.length === 0) {
+                throw new Error('Empty expression');
             }
-            return parseFloat(num);
-        };
-        
-        const parseFactor = () => {
-            if (peek() === '(') {
-                consume(); // '('
-                const result = parseExpression();
-                consume(); // ')'
+            
+            // Simple recursive descent parser for basic arithmetic
+            let pos = 0;
+            
+            const peek = () => pos < expr.length ? expr[pos] : null;
+            const consume = () => {
+                if (pos >= expr.length) return null;
+                return expr[pos++];
+            };
+            
+            const parseNumber = () => {
+                let num = '';
+                const current = peek();
+                
+                // Handle negative numbers
+                if (current === '-') {
+                    num += consume();
+                }
+                
+                // Parse digits and decimal point
+                while (pos < expr.length) {
+                    const char = peek();
+                    if (char && char.match(/[0-9.]/)) {
+                        num += consume();
+                    } else {
+                        break;
+                    }
+                }
+                
+                if (num === '' || num === '-') {
+                    throw new Error('Invalid number');
+                }
+                
+                const result = parseFloat(num);
+                if (isNaN(result)) {
+                    throw new Error('Invalid number: ' + num);
+                }
                 return result;
+            };
+            
+            const parseFactor = () => {
+                const current = peek();
+                
+                if (current === '(') {
+                    consume(); // '('
+                    const result = parseExpression();
+                    if (peek() !== ')') {
+                        throw new Error('Missing closing parenthesis');
+                    }
+                    consume(); // ')'
+                    return result;
+                }
+                
+                return parseNumber();
+            };
+            
+            const parseTerm = () => {
+                let result = parseFactor();
+                
+                while (pos < expr.length) {
+                    const op = peek();
+                    if (op === '*' || op === '/') {
+                        consume();
+                        const right = parseFactor();
+                        if (op === '*') {
+                            result = result * right;
+                        } else {
+                            if (right === 0) {
+                                throw new Error('Division by zero');
+                            }
+                            result = result / right;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+                
+                return result;
+            };
+            
+            const parseExpression = () => {
+                let result = parseTerm();
+                
+                while (pos < expr.length) {
+                    const op = peek();
+                    if (op === '+' || op === '-') {
+                        consume();
+                        const right = parseTerm();
+                        result = op === '+' ? result + right : result - right;
+                    } else {
+                        break;
+                    }
+                }
+                
+                return result;
+            };
+            
+            const result = parseExpression();
+            
+            // Check if we consumed the entire expression
+            if (pos < expr.length) {
+                throw new Error('Unexpected character: ' + peek());
             }
-            return parseNumber();
-        };
-        
-        const parseTerm = () => {
-            let result = parseFactor();
-            while (pos < expr.length && (peek() === '*' || peek() === '/')) {
-                const op = consume();
-                const right = parseFactor();
-                result = op === '*' ? result * right : result / right;
-            }
+            
             return result;
-        };
-        
-        const parseExpression = () => {
-            let result = parseTerm();
-            while (pos < expr.length && (peek() === '+' || peek() === '-')) {
-                const op = consume();
-                const right = parseTerm();
-                result = op === '+' ? result + right : result - right;
-            }
-            return result;
-        };
-        
-        return parseExpression();
+        } catch (error) {
+            console.error('Safe math eval error:', error.message);
+            throw error;
+        }
     };
     
     const knowledge = safeGetLocalStorage('nextor_knowledge', '{}');
@@ -2123,6 +2191,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             if (mathExpression) {
+                console.log('📐 Math detected:', mathExpression);
                 try {
                     // Replace natural language with operators
                     mathExpression = mathExpression
@@ -2137,6 +2206,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         .replace(/over/gi, '/')
                         .replace(/\s+/g, '');
                     
+                    console.log('📐 Converted expression:', mathExpression);
+                    
                     // Validate it's a safe math expression
                     if (!/^[\d+\-*/.()]+$/.test(mathExpression)) {
                         throw new Error('Invalid characters in expression');
@@ -2144,21 +2215,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     // Evaluate the expression (with multiple fallbacks for mobile browsers)
                     let result;
+                    let method = '';
+                    
                     try {
                         // Try Function() first
                         result = Function('"use strict"; return (' + mathExpression + ')')();
+                        method = 'Function()';
                     } catch (funcError) {
-                        console.log('Function() blocked, trying eval()');
+                        console.log('⚠️ Function() blocked:', funcError.message);
                         try {
                             // Try eval as fallback
                             result = eval(mathExpression);
+                            method = 'eval()';
                         } catch (evalError) {
-                            console.log('eval() also blocked, using manual parser');
+                            console.log('⚠️ eval() also blocked:', evalError.message);
                             // Last resort: use safer math parser
                             result = safeMathEval(mathExpression);
+                            method = 'safeMathEval()';
                         }
                     }
+                    
                     const finalResult = Number.isInteger(result) ? result : Math.round(result * 100) / 100;
+                    console.log(`✅ Math result: ${finalResult} (method: ${method})`);
                     
                     response = `The answer is ${finalResult}`;
                     handled = true;

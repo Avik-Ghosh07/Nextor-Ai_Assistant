@@ -332,24 +332,50 @@ document.addEventListener('DOMContentLoaded', () => {
         // On mobile, try to open native app first using deep link
         if (appScheme && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
             let appOpened = false;
+            const startTime = Date.now();
             
-            // Detect if app opened by checking if page loses focus
+            // Detect if app opened by checking if page loses focus or visibility
             const handleBlur = () => {
                 appOpened = true;
-                window.removeEventListener('blur', handleBlur);
             };
-            window.addEventListener('blur', handleBlur);
             
-            // Try app scheme first
-            window.location.href = appScheme;
+            const handleVisibilityChange = () => {
+                if (document.hidden) {
+                    appOpened = true;
+                }
+            };
+            
+            window.addEventListener('blur', handleBlur, { once: true });
+            document.addEventListener('visibilitychange', handleVisibilityChange, { once: true });
+            
+            // Try to open app using iframe method (works better on mobile)
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = appScheme;
+            document.body.appendChild(iframe);
+            
+            // Also try direct navigation as backup
+            setTimeout(() => {
+                window.location.href = appScheme;
+            }, 100);
             
             // Fallback to web URL only if app didn't open
             setTimeout(() => {
                 window.removeEventListener('blur', handleBlur);
-                if (!appOpened) {
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+                
+                // Remove iframe
+                if (iframe && iframe.parentNode) {
+                    document.body.removeChild(iframe);
+                }
+                
+                // Check if app opened (either blur event or quick return to page)
+                const timeElapsed = Date.now() - startTime;
+                if (!appOpened && timeElapsed < 2000) {
+                    // App didn't open, open web URL
                     window.open(url, '_blank');
                 }
-            }, 1500);
+            }, 2000);
         } else {
             // Desktop or no app scheme - just open web URL
             window.open(url, '_blank');
@@ -1615,7 +1641,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!/^[\d+\-*/.()\s]+$/.test(mathExpression)) {
                         throw new Error('Invalid characters in expression');
                     }
-                    const result = Function('"use strict"; return (' + mathExpression + ')')();
+                    
+                    // Evaluate with fallback for mobile browsers
+                    let result;
+                    try {
+                        result = Function('"use strict"; return (' + mathExpression + ')')();
+                    } catch (funcError) {
+                        // Fallback to eval for mobile browsers that block Function()
+                        console.log('Function() blocked, using eval() fallback');
+                        result = eval(mathExpression);
+                    }
                     
                     // Round to 2 decimal places if needed
                     const finalResult = Number.isInteger(result) ? result : Math.round(result * 100) / 100;
@@ -2041,8 +2076,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         throw new Error('Invalid characters in expression');
                     }
                     
-                    // Evaluate the expression
-                    const result = Function('"use strict"; return (' + mathExpression + ')')();
+                    // Evaluate the expression (with fallback for mobile browsers)
+                    let result;
+                    try {
+                        result = Function('"use strict"; return (' + mathExpression + ')')();
+                    } catch (funcError) {
+                        // Fallback to eval for mobile browsers that block Function()
+                        console.log('Function() blocked, using eval() fallback');
+                        result = eval(mathExpression);
+                    }
                     const finalResult = Number.isInteger(result) ? result : Math.round(result * 100) / 100;
                     
                     response = `The answer is ${finalResult}`;

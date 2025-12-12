@@ -451,51 +451,17 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // On mobile, try to open native app first using deep link
         if (appScheme && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-            let appOpened = false;
-            const startTime = Date.now();
+            console.log('📱 Mobile detected, trying app:', appScheme);
             
-            // Detect if app opened by checking if page loses focus or visibility
-            const handleBlur = () => {
-                appOpened = true;
-            };
-            
-            const handleVisibilityChange = () => {
-                if (document.hidden) {
-                    appOpened = true;
-                }
-            };
-            
-            window.addEventListener('blur', handleBlur, { once: true });
-            document.addEventListener('visibilitychange', handleVisibilityChange, { once: true });
-            
-            // Try to open app using iframe method (works better on mobile)
-            const iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
-            iframe.src = appScheme;
-            document.body.appendChild(iframe);
-            
-            // Also try direct navigation as backup
-            setTimeout(() => {
+            // For mobile, directly open the app scheme
+            // If app is installed, it opens; if not, browser shows error or does nothing
+            try {
                 window.location.href = appScheme;
-            }, 100);
-            
-            // Fallback to web URL only if app didn't open
-            setTimeout(() => {
-                window.removeEventListener('blur', handleBlur);
-                document.removeEventListener('visibilitychange', handleVisibilityChange);
-                
-                // Remove iframe
-                if (iframe && iframe.parentNode) {
-                    document.body.removeChild(iframe);
-                }
-                
-                // Check if app opened (either blur event or quick return to page)
-                const timeElapsed = Date.now() - startTime;
-                if (!appOpened && timeElapsed < 2000) {
-                    // App didn't open, open web URL
-                    window.open(url, '_blank');
-                }
-            }, 2000);
+                console.log('✅ App scheme launched');
+            } catch (error) {
+                console.log('⚠️ App scheme failed, opening web URL:', error);
+                window.open(url, '_blank');
+            }
         } else {
             // Desktop or no app scheme - just open web URL
             window.open(url, '_blank');
@@ -1213,6 +1179,51 @@ document.addEventListener('DOMContentLoaded', () => {
             if (lowerMsg.match(/database/)) {
                 return 'A database is an organized collection of structured data stored electronically. Popular databases include MySQL, PostgreSQL, MongoDB, and Oracle, used to store and retrieve application data efficiently.';
             }
+        }
+        
+        // Random helpful responses when AI quota is exceeded
+        const randomResponses = [
+            // Motivational quotes
+            "Success is not final, failure is not fatal: it is the courage to continue that counts. How can I help you stay motivated?",
+            "The only way to do great work is to love what you do. What are you working on today?",
+            "Believe you can and you're halfway there. What's your goal for today?",
+            "The future belongs to those who believe in the beauty of their dreams. What's your dream project?",
+            
+            // Productivity tips
+            "Try the Pomodoro Technique: 25 minutes of focused work, then a 5-minute break. Want to set a reminder?",
+            "Start with your most important task first thing in the morning when your energy is highest!",
+            "Eliminate distractions: turn off notifications, close extra tabs, and focus on one task at a time.",
+            "Use the 2-minute rule: if a task takes less than 2 minutes, do it immediately!",
+            
+            // Fun facts
+            "Fun fact: The Eiffel Tower can be six inches taller during summer because metal expands when heated!",
+            "Did you know? A teaspoon of honey is the life's work of 12 bees!",
+            "Interesting fact: Octopuses have three hearts and their blood is blue!",
+            "Fun fact: Bananas glow blue under black lights due to chlorophyll breakdown!",
+            
+            // Helpful suggestions
+            "I can help you with: playing music, checking weather, setting reminders, doing calculations, opening websites, and more!",
+            "Need help with productivity? I can share tips, set reminders, or play focus music for you!",
+            "Want to stay organized? I can help you manage tasks, set reminders, and plan your day!",
+            "I'm here to boost your productivity! Try asking me to play music, check weather, or give you a productivity tip!",
+            
+            // Jokes
+            "Why don't programmers trust stairs? Because they're always up to something! 😄",
+            "Why did the computer go to therapy? It had too many bytes of emotional baggage! 😂",
+            "Parallel lines have so much in common. It's a shame they'll never meet! 😅",
+            "Why do Java developers wear glasses? Because they can't C sharp! 👓",
+            
+            // Encouragement
+            "You're doing great! Remember, progress is better than perfection. What can I help you with?",
+            "Every expert was once a beginner. Keep learning and growing! How can I assist you today?",
+            "Small steps lead to big achievements. What's your next small step?",
+            "You've got this! Stay focused and take it one task at a time. Need any help?"
+        ];
+        
+        // Return a random response for questions when AI is unavailable
+        if (lowerMsg.match(/what|who|when|where|why|how|tell me|can you/)) {
+            const randomIndex = Math.floor(Math.random() * randomResponses.length);
+            return randomResponses[randomIndex];
         }
         
         // If no pattern matches, return null to trigger web search

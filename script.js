@@ -1780,8 +1780,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Check for topic-based help commands
-        if (!handled && (command.includes('work life balance') || command.includes('work-life balance') || command.includes('balance work'))) {
-            commands['work life balance']();
+        if (!handled && (command.includes('work life balance') || command.includes('work-life balance') || command.includes('balance work') || (command.includes('work') && command.includes('balance')))) {
+            commands['work life balance tips']();
             handled = true;
         }
         
@@ -2402,6 +2402,8 @@ document.addEventListener('DOMContentLoaded', () => {
             let response = '';
             let handled = false;
             
+            console.log('💬 Processing text chat:', command);
+            
             // Check for math expressions
             let mathExpression = '';
             
@@ -2491,8 +2493,10 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Check built-in knowledge patterns first
             if (!handled) {
+                console.log('🔍 Checking topic patterns for:', command);
                 // First check if it matches any topic-based commands
-                if (command.includes('work life balance') || command.includes('work-life balance') || command.includes('balance work') || (command.includes('advice') && command.includes('work'))) {
+                if (command.includes('work life balance advice') || command.includes('work-life balance') || command.includes('balance work') || (command.includes('advice') && command.includes('work'))) {
+                    console.log('✅ Matched work-life balance pattern');
                     const tips = [
                         "Burnout prevention: Work hard, but rest harder. Your brain needs downtime to consolidate learning!",
                         "Set boundaries: No emails after 8 PM. No work on weekends. Your future self will thank you!",
@@ -2503,6 +2507,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ];
                     response = tips[Math.floor(Math.random() * tips.length)];
                     handled = true;
+                    console.log('💡 Response set:', response);
                 } else if (command.includes('productivity tip') || command.includes('productive') || command.includes('how to be productive') || (command.includes('advice') && command.includes('productivity'))) {
                     const tips = [
                         "Try the Pomodoro Technique: 25 minutes of focused work, then a 5-minute break.",
@@ -2587,15 +2592,19 @@ document.addEventListener('DOMContentLoaded', () => {
             // Remove typing indicator
             removeTypingIndicator();
             
+            console.log('📤 Final response:', response, 'Handled:', handled);
+            
             // Add bot response - ensure response is valid
             if (response && typeof response === 'string' && response.length > 0) {
                 addChatMessage('bot', sanitizeHTML(response));
             } else {
+                console.warn('⚠️ Invalid response, using fallback');
                 addChatMessage('bot', "I can help you with productivity tips, work-life balance advice, study tips, career guidance, motivation, and more! What would you like to know?");
             }
             
         } catch (error) {
-            console.error('Error sending text chat:', error);
+            console.error('❌ Error in text chat:', error);
+            console.error('Error stack:', error.stack);
             removeTypingIndicator();
             addChatMessage('bot', "Sorry, I encountered an error. Try asking about productivity, work-life balance, study tips, or career advice!");
         }

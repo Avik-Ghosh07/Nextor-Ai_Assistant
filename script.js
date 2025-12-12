@@ -477,14 +477,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (appScheme && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
             console.log('📱 Mobile detected, trying app:', appScheme);
             
-            // For social media apps, use web URLs that auto-redirect to app if installed
-            const socialMediaApps = ['whatsapp', 'instagram', 'facebook', 'twitter', 'tiktok', 'snapchat'];
-            const isSocialMedia = socialMediaApps.some(app => 
-                appScheme.includes(app) || url.includes(app)
-            );
-            
-            if (isSocialMedia) {
-                // These web URLs automatically open the app if installed
+            // Instagram and Facebook use web URLs that auto-redirect to app
+            if (url.includes('instagram') || url.includes('facebook')) {
                 window.open(url, '_blank');
                 return;
             }
@@ -1458,26 +1452,25 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Mobile app deep link schemes (will prompt to open app if installed)
     const mobileAppSchemes = {
-        youtube: 'youtube://',
-        whatsapp: 'https://web.whatsapp.com', // Web URL auto-opens app
+        youtube: 'https://www.youtube.com', // Web URL auto-opens app
+        whatsapp: 'https://web.whatsapp.com', // Opens WhatsApp Web which redirects to app on mobile
         instagram: 'https://www.instagram.com', // Web URL auto-opens app
         facebook: 'https://www.facebook.com', // Web URL auto-opens app
-        netflix: 'netflix://',
-        spotify: 'spotify://',
-        gmail: 'googlegmail://',
+        netflix: 'https://www.netflix.com', // Web URL auto-opens app
+        spotify: 'https://open.spotify.com', // Web URL auto-opens app
+        gmail: 'https://mail.google.com', // Web URL auto-opens app
         twitter: 'https://twitter.com', // Web URL auto-opens app
-        linkedin: 'linkedin://',
-        amazon: 'amazon://',
-        reddit: 'reddit://',
-        github: 'github://',
-        telegram: 'tg://',
-        discord: 'discord://',
-        tiktok: 'https://www.tiktok.com', // Web URL auto-opens app
-        snapchat: 'https://www.snapchat.com', // Web URL auto-opens app
-        uber: 'uber://',
-        maps: 'maps://',
-        'google maps': 'comgooglemaps://',
-        chrome: 'googlechrome://'
+        linkedin: 'https://www.linkedin.com', // Web URL auto-opens app
+        amazon: 'https://www.amazon.com', // Web URL auto-opens app
+        reddit: 'https://www.reddit.com', // Web URL auto-opens app
+        github: 'https://www.github.com',
+        telegram: 'https://web.telegram.org',
+        discord: 'https://discord.com',
+        snapchat: 'https://www.snapchat.com',
+        uber: 'https://www.uber.com',
+        maps: 'https://maps.google.com',
+        'google maps': 'https://maps.google.com',
+        chrome: 'https://www.google.com/chrome'
     };
 
     const tips = [

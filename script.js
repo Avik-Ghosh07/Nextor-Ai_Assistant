@@ -1278,7 +1278,57 @@ document.addEventListener('DOMContentLoaded', () => {
             "Today's struggles are developing tomorrow's strengths. Keep pushing forward!",
             "You're capable of amazing things! What challenge are you tackling today?",
             "Remember: every accomplishment starts with the decision to try. You're already on your way!",
-            "Be proud of how far you've come, and excited about how far you'll go!"
+            "Be proud of how far you've come, and excited about how far you'll go!",
+            
+            // Career & Professional Guidance
+            "Career tip: Build projects, not just certificates. Real work speaks louder than credentials!",
+            "Networking matters! Connect with people in your field. 70% of jobs aren't advertised publicly.",
+            "Don't wait for perfection to apply. If you meet 60% of job requirements, go for it!",
+            "Imposter syndrome is normal! Even experts feel it. Your growth proves you're pushing boundaries.",
+            "Learn in public: Share your journey on LinkedIn, GitHub, or blogs. It builds your personal brand!",
+            "Soft skills = hard currency. Communication, teamwork, problem-solving matter as much as technical skills.",
+            "Career growth isn't linear. Plateaus, setbacks, and sideways moves often lead to breakthroughs!",
+            "Invest in mentorship: Find someone 2-3 steps ahead. Their mistakes can save you years!",
+            
+            // Skill Development
+            "Learning tip: Focus on fundamentals first. Master the basics before chasing trends!",
+            "Build a T-shaped skill set: Deep expertise in one area + broad knowledge in others.",
+            "Practice deliberate learning: Set specific goals, get feedback, iterate. Don't just consume content!",
+            "The best time to learn was yesterday. The second best time is now. Start small, start today!",
+            "Side projects = best learning. Build something you're excited about, learn while doing!",
+            "Don't tutorial hell yourself! Watch → Build → Break → Fix → Learn. That's the cycle!",
+            "Learn by teaching: Write blogs, make videos, help others. Teaching solidifies your knowledge!",
+            
+            // Work-Life Balance
+            "Burnout prevention: Work hard, but rest harder. Your brain needs downtime to consolidate learning!",
+            "Set boundaries: No emails after 8 PM. No work on weekends. Your future self will thank you!",
+            "Schedule self-care like meetings: Exercise, hobbies, family time. They're not optional, they're essential!",
+            "Feeling overwhelmed? Take a 5-minute walk. Fresh air + movement = mental reset!",
+            "Quality > quantity. 4 focused hours beat 12 distracted hours every single time!",
+            "Remember: You're a human being, not a human doing. Your worth isn't your productivity!",
+            
+            // Problem-Solving & Decision Making
+            "Stuck on a problem? Step away for 30 minutes. Solutions often come when you stop forcing them!",
+            "Decision paralysis? Use the 10-10-10 rule: How will you feel in 10 mins, 10 months, 10 years?",
+            "Break big problems into tiny pieces. Solve one piece at a time. Progress builds momentum!",
+            "Ask 'Why' five times to get to root causes. Surface problems hide deeper issues!",
+            "Can't decide? Flip a coin. Your gut reaction to the result reveals what you really want!",
+            "Every 'no' brings you closer to a 'yes'. Rejection is redirection, not failure!",
+            
+            // Student-Specific Guidance
+            "College tip: Join clubs, attend events, build connections. Your network = your net worth later!",
+            "Internships > grades for jobs. Real experience beats perfect GPA every time!",
+            "Don't compare your chapter 1 to someone else's chapter 20. Run your own race!",
+            "Confused about career? Try things! Internships, projects, freelancing. Experience brings clarity!",
+            "Your degree opens doors, but your skills keep them open. Keep learning beyond the syllabus!",
+            
+            // Professional Growth
+            "Ask for feedback regularly. Waiting for annual reviews = missed growth opportunities!",
+            "Document your wins! Keep a 'brag doc' of achievements for reviews and interviews.",
+            "Struggling at work? Ask 'How can I add more value?' Focus on solutions, not problems!",
+            "Master communication: Speak clearly, write concisely, listen actively. It multiplies your impact!",
+            "Career switch? Your transferable skills matter more than domain knowledge. Sell them well!",
+            "Salary negotiation: Know your worth, research market rates, and always negotiate. You deserve it!"
         ];
         
         // For random general knowledge questions (cricket, football, etc.) - return null to trigger web search

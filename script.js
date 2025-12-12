@@ -2491,10 +2491,79 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Check built-in knowledge patterns first
             if (!handled) {
-                const fallbackResponse = getOfflineFallbackResponse(message);
-                if (fallbackResponse) {
-                    response = fallbackResponse;
+                // First check if it matches any topic-based commands
+                if (command === 'work life balance' || command.includes('work life balance') || command.includes('work-life balance') || command.includes('balance work')) {
+                    const tips = [
+                        "Burnout prevention: Work hard, but rest harder. Your brain needs downtime to consolidate learning!",
+                        "Set boundaries: No emails after 8 PM. No work on weekends. Your future self will thank you!",
+                        "Schedule self-care like meetings: Exercise, hobbies, family time. They're not optional, they're essential!",
+                        "Feeling overwhelmed? Take a 5-minute walk. Fresh air + movement = mental reset!",
+                        "Quality > quantity. 4 focused hours beat 12 distracted hours every single time!",
+                        "Remember: You're a human being, not a human doing. Your worth isn't your productivity!"
+                    ];
+                    response = tips[Math.floor(Math.random() * tips.length)];
                     handled = true;
+                } else if (command === 'productivity tip' || command.includes('productivity tip') || command.includes('productive') || command.includes('how to be productive')) {
+                    const tips = [
+                        "Try the Pomodoro Technique: 25 minutes of focused work, then a 5-minute break.",
+                        "Start with your most important task first thing in the morning when your energy is highest!",
+                        "Eliminate distractions: turn off notifications, close extra tabs, and focus on one task at a time.",
+                        "Use the 2-minute rule: if a task takes less than 2 minutes, do it immediately!",
+                        "Batch similar tasks together to minimize context switching and boost efficiency!",
+                        "Take regular breaks! Your brain needs rest to maintain peak performance throughout the day."
+                    ];
+                    response = tips[Math.floor(Math.random() * tips.length)];
+                    handled = true;
+                } else if (command === 'study tip' || command.includes('study tip') || command.includes('how to study') || command.includes('exam tip')) {
+                    const tips = [
+                        "Exam prep tip: Use active recall instead of just re-reading. Test yourself frequently!",
+                        "Space out your study sessions over days/weeks. Spaced repetition = better retention!",
+                        "Study tip: Teach what you learned to someone else. Teaching = deepest understanding!",
+                        "Use the Feynman Technique: Explain concepts in simple terms as if teaching a beginner.",
+                        "Morning = peak brain performance! Study difficult subjects early, easier ones later.",
+                        "Don't skip sleep before exams! 7-8 hours sleep = better memory consolidation and focus."
+                    ];
+                    response = tips[Math.floor(Math.random() * tips.length)];
+                    handled = true;
+                } else if (command === 'career advice' || command.includes('career advice') || command.includes('career tip') || command.includes('job advice')) {
+                    const advice = [
+                        "Career tip: Build projects, not just certificates. Real work speaks louder than credentials!",
+                        "Networking matters! Connect with people in your field. 70% of jobs aren't advertised publicly.",
+                        "Don't wait for perfection to apply. If you meet 60% of job requirements, go for it!",
+                        "Learn in public: Share your journey on LinkedIn, GitHub, or blogs. It builds your personal brand!",
+                        "Soft skills = hard currency. Communication, teamwork, problem-solving matter as much as technical skills.",
+                        "Invest in mentorship: Find someone 2-3 steps ahead. Their mistakes can save you years!"
+                    ];
+                    response = advice[Math.floor(Math.random() * advice.length)];
+                    handled = true;
+                } else if (command === 'motivation' || command.includes('motivate me') || command.includes('motivation') || command.includes('inspire me')) {
+                    const quotes = [
+                        "Success is not final, failure is not fatal: it is the courage to continue that counts.",
+                        "The only way to do great work is to love what you do.",
+                        "Believe you can and you're halfway there.",
+                        "The harder you work for something, the greater you'll feel when you achieve it.",
+                        "Dream big, start small, act now.",
+                        "Your limitation—it's only your imagination. What will you create today?"
+                    ];
+                    response = quotes[Math.floor(Math.random() * quotes.length)];
+                    handled = true;
+                } else if (command === 'tell me a joke' || command.includes('joke') || command.includes('make me laugh')) {
+                    const jokes = [
+                        "Why don't programmers trust stairs? Because they're always up to something!",
+                        "Why did the computer go to therapy? It had too many bytes of emotional baggage!",
+                        "Parallel lines have so much in common. It's a shame they'll never meet!",
+                        "Why do Java developers wear glasses? Because they can't C sharp!",
+                        "Why do programmers prefer dark mode? Because light attracts bugs!",
+                        "What do you call 8 hobbits? A hobbyte!"
+                    ];
+                    response = jokes[Math.floor(Math.random() * jokes.length)];
+                    handled = true;
+                } else {
+                    const fallbackResponse = getOfflineFallbackResponse(message);
+                    if (fallbackResponse) {
+                        response = fallbackResponse;
+                        handled = true;
+                    }
                 }
             }
             

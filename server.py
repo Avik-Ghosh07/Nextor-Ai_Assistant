@@ -67,10 +67,18 @@ def add_security_headers(response):
 request_tracker = {}
 RATE_LIMIT = int(os.getenv('RATE_LIMIT', '60'))  # requests per minute
 RATE_WINDOW = 60  # seconds
+MAX_IPS_TRACKED = 1000  # Prevent memory issues
 
 def check_rate_limit(client_ip: str) -> bool:
     """Simple rate limiting check. Returns True if allowed."""
     now = dt.datetime.now().timestamp()
+    
+    # Periodic cleanup: remove IPs with no recent activity
+    if len(request_tracker) > MAX_IPS_TRACKED:
+        # Keep only IPs with requests in last window
+        request_tracker.clear()
+        print(f"🧹 Cleared request_tracker (exceeded {MAX_IPS_TRACKED} IPs)")
+    
     if client_ip not in request_tracker:
         request_tracker[client_ip] = []
     
@@ -79,6 +87,11 @@ def check_rate_limit(client_ip: str) -> bool:
         req_time for req_time in request_tracker[client_ip]
         if now - req_time < RATE_WINDOW
     ]
+    
+    # Remove IP entry if no recent requests
+    if not request_tracker[client_ip]:
+        del request_tracker[client_ip]
+        return True
     
     # Check if limit exceeded
     if len(request_tracker[client_ip]) >= RATE_LIMIT:

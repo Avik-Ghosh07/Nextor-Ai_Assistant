@@ -83,11 +83,25 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const value = localStorage.getItem(key);
             if (!value) return JSON.parse(defaultValue);
+            
             // Validate JSON before parsing
             const parsed = JSON.parse(value);
+            
+            // Additional validation: ensure parsed value is not null
+            if (parsed === null || parsed === undefined) {
+                console.warn(`localStorage key "${key}" is null/undefined, using default`);
+                return JSON.parse(defaultValue);
+            }
+            
             return parsed;
         } catch (e) {
             console.warn(`Failed to parse localStorage key: ${key}`, e);
+            // Clear corrupted data
+            try {
+                localStorage.removeItem(key);
+            } catch (removeError) {
+                console.warn('Failed to remove corrupted localStorage key:', removeError);
+            }
             return JSON.parse(defaultValue);
         }
     };
@@ -324,27 +338,31 @@ document.addEventListener('DOMContentLoaded', () => {
     function addMessage(role, text) {
         const timestamp = new Date().toISOString();
         conversationHistory.push({ role, text, time: timestamp });
+        
+        // Aggressive trimming: keep only essential messages
         if (conversationHistory.length > MAX_HISTORY) {
             conversationHistory = conversationHistory.slice(-MAX_HISTORY);
         }
+        
         renderConversation();
         saveConversationHistory();
     }
 
     function saveConversationHistory() {
         try {
-            // Keep only last 50 conversations to prevent localStorage overflow
-            const toSave = conversationHistory.slice(-MAX_STORAGE_CONVERSATIONS);
+            // More aggressive: Keep only last 30 conversations to prevent overflow
+            const toSave = conversationHistory.slice(-Math.min(30, MAX_STORAGE_CONVERSATIONS));
             safeSetLocalStorage('nextor_conversations', JSON.stringify(toSave));
         } catch (error) {
-            // If quota exceeded, clear old data and retry
+            // If quota exceeded, clear old data and retry with minimal data
             if (error.name === 'QuotaExceededError') {
+                console.warn('localStorage quota exceeded, trimming history aggressively');
                 localStorage.removeItem('nextor_conversations');
-                conversationHistory = conversationHistory.slice(-MAX_HISTORY);
+                conversationHistory = conversationHistory.slice(-10); // Keep only last 10
                 try {
                     safeSetLocalStorage('nextor_conversations', JSON.stringify(conversationHistory));
                 } catch (e) {
-                    // Still failing, give up silently
+                    console.error('Still failing after trim, localStorage may be disabled:', e);
                 }
             }
         }
@@ -406,6 +424,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function speak(text, options = {}) {
         const { onend, log = true } = options;
+        
+        if (!assistantResponseEl) {
+            console.warn('⚠️ assistantResponseEl not found');
+            return;
+        }
+        
         assistantResponseEl.textContent = text;
         if (log) {
             addMessage('assistant', text);
@@ -413,37 +437,37 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const synth = window.speechSynthesis;
         
-        // Force cancel any ongoing speech and clear queue
-        if (synth.speaking || synth.pending) {
-            synth.cancel();
-        }
+        // Force cancel any ongoing speech and clear queue completely
+        synth.cancel();
         
-        utterance.text = text;
-        utterance.rate = 1.0;
-        utterance.pitch = 1.0;
-        utterance.volume = 1.0;
-        
-        utterance.onstart = () => updateStatus('speaking');
-        utterance.onend = () => {
-            updateStatus('idle');
-            if (typeof onend === 'function') {
-                onend();
-            }
-        };
-        utterance.onerror = (event) => {
-            updateStatus('idle');
-            // Only retry on recoverable errors
-            if (event.error === 'network' || event.error === 'synthesis-unavailable') {
-                setTimeout(() => synth.speak(utterance), 500);
-            }
-        };
-        
-        // Ensure clean state before speaking
+        // Small delay to ensure cancellation completes
         setTimeout(() => {
-            if (!synth.speaking) {
+            utterance.text = text;
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            utterance.volume = 1.0;
+            
+            utterance.onstart = () => updateStatus('speaking');
+            utterance.onend = () => {
+                updateStatus('idle');
+                if (typeof onend === 'function') {
+                    onend();
+                }
+            };
+            utterance.onerror = (event) => {
+                console.warn('Speech synthesis error:', event.error);
+                updateStatus('idle');
+                // Only retry on recoverable errors
+                if (event.error === 'network' || event.error === 'synthesis-unavailable') {
+                    setTimeout(() => synth.speak(utterance), 500);
+                }
+            };
+            
+            // Speak only if synthesis is available and not already speaking
+            if (synth && !synth.speaking) {
                 synth.speak(utterance);
             }
-        }, 150);
+        }, 100);
     }
 
     function openWebsite(url, speakText, appScheme = null) {
@@ -2193,73 +2217,77 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Clear chat history button
-    clearHistoryBtn.addEventListener('click', () => {
-        conversationHistory = [];
-        saveConversationHistory();
-        renderConversation();
-        
-        // Clear the visible command and response displays
-        if (userCommandEl) {
-            userCommandEl.textContent = 'Waiting for your command...';
-        }
-        if (assistantResponseEl) {
-            assistantResponseEl.textContent = 'Click activate and speak to me!';
-        }
-        
-        speak('Chat history cleared successfully. Click activate and speak to me!');
-    });
+    if (clearHistoryBtn) {
+        clearHistoryBtn.addEventListener('click', () => {
+            conversationHistory = [];
+            saveConversationHistory();
+            renderConversation();
+            
+            // Clear the visible command and response displays
+            if (userCommandEl) {
+                userCommandEl.textContent = 'Waiting for your command...';
+            }
+            if (assistantResponseEl) {
+                assistantResponseEl.textContent = 'Click activate and speak to me!';
+            }
+            
+            speak('Chat history cleared successfully. Click activate and speak to me!');
+        });
+    }
 
     // Add reminder button
-    addReminderBtn.addEventListener('click', () => {
-        const task = reminderTaskInput.value.trim();
-        const time = reminderTimeInput.value.trim();
-        
-        // Enhanced input validation
-        if (!task || task.length < 2) {
-            speak('Please enter a valid task description');
-            return;
-        }
-        
-        if (task.length > 200) {
-            speak('Task description is too long. Please keep it under 200 characters');
-            return;
-        }
-        
-        if (!time) {
-            speak('Please specify when you want to be reminded');
-            return;
-        }
-        
-        const scheduledTime = parseTimeToDate(time);
-        if (!scheduledTime) {
-            speak("I couldn't understand the time. Try formats like 5pm, in 30 minutes, or tomorrow at 9am");
-            return;
-        }
-        
-        const newReminder = {
-            id: Date.now(),
-            text: task,
-            time: time,
-            scheduledTime: scheduledTime.getTime()
-        };
-        
-        reminders.push(newReminder);
-        saveReminders();
-        scheduleReminder(newReminder, reminders.length - 1);
-        renderReminders();
-        
-        // Clear inputs
-        reminderTaskInput.value = '';
-        reminderTimeInput.value = '';
-        
-        const timeStr = scheduledTime.toLocaleString([], { 
-            month: 'short', 
-            day: 'numeric', 
-            hour: '2-digit', 
-            minute: '2-digit' 
+    if (addReminderBtn && reminderTaskInput && reminderTimeInput) {
+        addReminderBtn.addEventListener('click', () => {
+            const task = reminderTaskInput.value.trim();
+            const time = reminderTimeInput.value.trim();
+            
+            // Enhanced input validation
+            if (!task || task.length < 2) {
+                speak('Please enter a valid task description');
+                return;
+            }
+            
+            if (task.length > 200) {
+                speak('Task description is too long. Please keep it under 200 characters');
+                return;
+            }
+            
+            if (!time) {
+                speak('Please specify when you want to be reminded');
+                return;
+            }
+            
+            const scheduledTime = parseTimeToDate(time);
+            if (!scheduledTime) {
+                speak("I couldn't understand the time. Try formats like 5pm, in 30 minutes, or tomorrow at 9am");
+                return;
+            }
+            
+            const newReminder = {
+                id: Date.now() + Math.random(), // Ensure unique ID
+                text: task,
+                time: time,
+                scheduledTime: scheduledTime.getTime()
+            };
+            
+            reminders.push(newReminder);
+            saveReminders();
+            scheduleReminder(newReminder, reminders.length - 1);
+            renderReminders();
+            
+            // Clear inputs
+            reminderTaskInput.value = '';
+            reminderTimeInput.value = '';
+            
+            const timeStr = scheduledTime.toLocaleString([], { 
+                month: 'short', 
+                day: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            speak(`Reminder set for ${task} at ${timeStr}`);
         });
-        speak(`Reminder set for ${task} at ${timeStr}`);
-    });
+    }
 
     quickPromptButtons.forEach((button) => {
         button.addEventListener('click', async () => {

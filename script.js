@@ -1210,6 +1210,32 @@ document.addEventListener('DOMContentLoaded', () => {
             "Time-block your calendar: allocate specific time slots for different types of work.",
             "Practice the 80/20 rule: 80% of results come from 20% of efforts. Find your high-impact tasks!",
             
+            // Exam preparation tips
+            "Exam prep tip: Use active recall instead of just re-reading. Test yourself frequently!",
+            "Space out your study sessions over days/weeks. Spaced repetition = better retention!",
+            "Create a realistic study timetable: divide syllabus by days remaining, add buffer time.",
+            "Exam strategy: Solve previous year papers! They reveal exam patterns and important topics.",
+            "Study tip: Teach what you learned to someone else. Teaching = deepest understanding!",
+            "Break chapters into smaller chunks. Complete one chunk at a time to avoid overwhelm.",
+            "Use the Feynman Technique: Explain concepts in simple terms as if teaching a beginner.",
+            "Morning = peak brain performance! Study difficult subjects early, easier ones later.",
+            "Make short notes/flashcards while studying. They're gold for quick revision before exams!",
+            "Don't skip sleep before exams! 7-8 hours sleep = better memory consolidation and focus.",
+            
+            // Daily planning tips
+            "Plan your day: List 3 must-do tasks every morning. Accomplish these first!",
+            "Use time-blocking: 6-9am exercise & breakfast, 9-12pm deep work, 12-1pm lunch, etc.",
+            "Review your day each night: What worked? What didn't? Adjust tomorrow's plan accordingly.",
+            "Energy management > time management. Schedule hard tasks when your energy is highest!",
+            "Build a morning routine: wake up same time, hydrate, exercise, healthy breakfast, then work!",
+            
+            // Syllabus completion strategies
+            "Syllabus completion: Divide total chapters by days left. Track daily progress with checkmarks!",
+            "Make a priority matrix: High-weightage + weak topics = study first. Low-weightage = later.",
+            "Use the 70-20-10 rule: 70% new content, 20% revision, 10% practice tests.",
+            "Create chapter checklists: Theory → Examples → Practice → Revision. Check off as you go!",
+            "Stuck on a topic? Don't waste hours! Mark it, move on, come back later with fresh eyes.",
+            
             // Fun facts
             "Fun fact: The Eiffel Tower can be six inches taller during summer because metal expands when heated!",
             "Did you know? A teaspoon of honey is the life's work of 12 bees!",

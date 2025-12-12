@@ -2492,7 +2492,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Check built-in knowledge patterns first
             if (!handled) {
                 // First check if it matches any topic-based commands
-                if (command === 'work life balance' || command.includes('work life balance') || command.includes('work-life balance') || command.includes('balance work')) {
+                if (command.includes('work life balance') || command.includes('work-life balance') || command.includes('balance work') || (command.includes('advice') && command.includes('work'))) {
                     const tips = [
                         "Burnout prevention: Work hard, but rest harder. Your brain needs downtime to consolidate learning!",
                         "Set boundaries: No emails after 8 PM. No work on weekends. Your future self will thank you!",
@@ -2503,7 +2503,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ];
                     response = tips[Math.floor(Math.random() * tips.length)];
                     handled = true;
-                } else if (command === 'productivity tip' || command.includes('productivity tip') || command.includes('productive') || command.includes('how to be productive')) {
+                } else if (command.includes('productivity tip') || command.includes('productive') || command.includes('how to be productive') || (command.includes('advice') && command.includes('productivity'))) {
                     const tips = [
                         "Try the Pomodoro Technique: 25 minutes of focused work, then a 5-minute break.",
                         "Start with your most important task first thing in the morning when your energy is highest!",
@@ -2514,7 +2514,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ];
                     response = tips[Math.floor(Math.random() * tips.length)];
                     handled = true;
-                } else if (command === 'study tip' || command.includes('study tip') || command.includes('how to study') || command.includes('exam tip')) {
+                } else if (command.includes('study tip') || command.includes('how to study') || command.includes('exam tip') || (command.includes('advice') && command.includes('study'))) {
                     const tips = [
                         "Exam prep tip: Use active recall instead of just re-reading. Test yourself frequently!",
                         "Space out your study sessions over days/weeks. Spaced repetition = better retention!",
@@ -2525,7 +2525,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ];
                     response = tips[Math.floor(Math.random() * tips.length)];
                     handled = true;
-                } else if (command === 'career advice' || command.includes('career advice') || command.includes('career tip') || command.includes('job advice')) {
+                } else if (command.includes('career advice') || command.includes('career tip') || command.includes('job advice') || (command.includes('advice') && command.includes('career'))) {
                     const advice = [
                         "Career tip: Build projects, not just certificates. Real work speaks louder than credentials!",
                         "Networking matters! Connect with people in your field. 70% of jobs aren't advertised publicly.",
@@ -2536,7 +2536,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ];
                     response = advice[Math.floor(Math.random() * advice.length)];
                     handled = true;
-                } else if (command === 'motivation' || command.includes('motivate me') || command.includes('motivation') || command.includes('inspire me')) {
+                } else if (command.includes('motivate me') || command.includes('motivation') || command.includes('inspire me') || (command.includes('give me') && command.includes('motivation'))) {
                     const quotes = [
                         "Success is not final, failure is not fatal: it is the courage to continue that counts.",
                         "The only way to do great work is to love what you do.",
@@ -2547,7 +2547,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ];
                     response = quotes[Math.floor(Math.random() * quotes.length)];
                     handled = true;
-                } else if (command === 'tell me a joke' || command.includes('joke') || command.includes('make me laugh')) {
+                } else if (command.includes('joke') || command.includes('make me laugh') || command.includes('funny')) {
                     const jokes = [
                         "Why don't programmers trust stairs? Because they're always up to something!",
                         "Why did the computer go to therapy? It had too many bytes of emotional baggage!",
@@ -2587,13 +2587,17 @@ document.addEventListener('DOMContentLoaded', () => {
             // Remove typing indicator
             removeTypingIndicator();
             
-            // Add bot response
-            addChatMessage('bot', sanitizeHTML(response));
+            // Add bot response - ensure response is valid
+            if (response && typeof response === 'string' && response.length > 0) {
+                addChatMessage('bot', sanitizeHTML(response));
+            } else {
+                addChatMessage('bot', "I can help you with productivity tips, work-life balance advice, study tips, career guidance, motivation, and more! What would you like to know?");
+            }
             
         } catch (error) {
             console.error('Error sending text chat:', error);
             removeTypingIndicator();
-            addChatMessage('bot', "Sorry, I encountered an error. Please try again.");
+            addChatMessage('bot', "Sorry, I encountered an error. Try asking about productivity, work-life balance, study tips, or career advice!");
         }
     }
     

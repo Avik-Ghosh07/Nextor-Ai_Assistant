@@ -1459,11 +1459,15 @@ document.addEventListener('DOMContentLoaded', () => {
         netflix: 'https://www.netflix.com', // Web URL auto-opens app
         spotify: 'https://open.spotify.com', // Web URL auto-opens app
         gmail: 'https://mail.google.com', // Web URL auto-opens app
+        jiosaavn: 'https://www.jiosaavn.com', // Web URL auto-opens app
         twitter: 'https://twitter.com', // Web URL auto-opens app
         linkedin: 'https://www.linkedin.com', // Web URL auto-opens app
         amazon: 'https://www.amazon.com', // Web URL auto-opens app
         reddit: 'https://www.reddit.com', // Web URL auto-opens app
         github: 'https://www.github.com',
+        jiohotstar: 'https://www.hotstar.com', // Web URL auto-opens app
+        phonepay: 'https://www.phonepe.com', // Web URL auto-opens app
+        googlepay: 'https://pay.google.com', // Web URL auto-opens app
         telegram: 'https://web.telegram.org',
         discord: 'https://discord.com',
         snapchat: 'https://www.snapchat.com',

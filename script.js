@@ -2070,6 +2070,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (reply) {
                     speak(reply);
                     handled = true;
+                } else {
+                    // AI returned null/empty, trigger web search
+                    console.log('📝 AI returned empty response, triggering web search');
                 }
             } catch (error) {
                 console.error('Error fetching chat reply:', error);
@@ -2591,6 +2594,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (fallbackResponse) {
                         response = fallbackResponse;
                         handled = true;
+                    } else {
+                        // Fallback returned null - should trigger web search
+                        console.log('🔍 Fallback returned null, will try AI then web search');
                     }
                 }
             }
@@ -2601,12 +2607,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (response) {
                     console.log('📝 AI Response:', response);
                     handled = true;
+                } else {
+                    // AI returned null/empty - trigger web search
+                    console.log('📝 AI returned empty response, triggering web search');
                 }
             }
             
-            // Final fallback
+            // Final fallback - web search
             if (!handled || !response) {
                 response = "I'm not sure about that. Let me search the web for you.";
+                handled = true; // Mark as handled to prevent error fallback
                 setTimeout(() => {
                     window.open(`https://www.google.com/search?q=${encodeURIComponent(message)}`, '_blank');
                 }, 1000);

@@ -1654,6 +1654,72 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         'goodbye': () => {
             speak('Goodbye! Come back anytime you need help.');
+        },
+        'work life balance tips': () => {
+            const tips = [
+                "Burnout prevention: Work hard, but rest harder. Your brain needs downtime to consolidate learning!",
+                "Set boundaries: No emails after 8 PM. No work on weekends. Your future self will thank you!",
+                "Schedule self-care like meetings: Exercise, hobbies, family time. They're not optional, they're essential!",
+                "Feeling overwhelmed? Take a 5-minute walk. Fresh air + movement = mental reset!",
+                "Quality > quantity. 4 focused hours beat 12 distracted hours every single time!",
+                "Remember: You're a human being, not a human doing. Your worth isn't your productivity!"
+            ];
+            speak(tips[Math.floor(Math.random() * tips.length)]);
+        },
+        'productivity tip': () => {
+            const tips = [
+                "Try the Pomodoro Technique: 25 minutes of focused work, then a 5-minute break.",
+                "Start with your most important task first thing in the morning when your energy is highest!",
+                "Eliminate distractions: turn off notifications, close extra tabs, and focus on one task at a time.",
+                "Use the 2-minute rule: if a task takes less than 2 minutes, do it immediately!",
+                "Batch similar tasks together to minimize context switching and boost efficiency!",
+                "Take regular breaks! Your brain needs rest to maintain peak performance throughout the day."
+            ];
+            speak(tips[Math.floor(Math.random() * tips.length)]);
+        },
+        'study tip': () => {
+            const tips = [
+                "Exam prep tip: Use active recall instead of just re-reading. Test yourself frequently!",
+                "Space out your study sessions over days/weeks. Spaced repetition = better retention!",
+                "Study tip: Teach what you learned to someone else. Teaching = deepest understanding!",
+                "Use the Feynman Technique: Explain concepts in simple terms as if teaching a beginner.",
+                "Morning = peak brain performance! Study difficult subjects early, easier ones later.",
+                "Don't skip sleep before exams! 7-8 hours sleep = better memory consolidation and focus."
+            ];
+            speak(tips[Math.floor(Math.random() * tips.length)]);
+        },
+        'career advice': () => {
+            const advice = [
+                "Career tip: Build projects, not just certificates. Real work speaks louder than credentials!",
+                "Networking matters! Connect with people in your field. 70% of jobs aren't advertised publicly.",
+                "Don't wait for perfection to apply. If you meet 60% of job requirements, go for it!",
+                "Learn in public: Share your journey on LinkedIn, GitHub, or blogs. It builds your personal brand!",
+                "Soft skills = hard currency. Communication, teamwork, problem-solving matter as much as technical skills.",
+                "Invest in mentorship: Find someone 2-3 steps ahead. Their mistakes can save you years!"
+            ];
+            speak(advice[Math.floor(Math.random() * advice.length)]);
+        },
+        'motivation': () => {
+            const quotes = [
+                "Success is not final, failure is not fatal: it is the courage to continue that counts.",
+                "The only way to do great work is to love what you do.",
+                "Believe you can and you're halfway there.",
+                "The harder you work for something, the greater you'll feel when you achieve it.",
+                "Dream big, start small, act now.",
+                "Your limitation—it's only your imagination. What will you create today?"
+            ];
+            speak(quotes[Math.floor(Math.random() * quotes.length)]);
+        },
+        'tell me a joke': () => {
+            const jokes = [
+                "Why don't programmers trust stairs? Because they're always up to something!",
+                "Why did the computer go to therapy? It had too many bytes of emotional baggage!",
+                "Parallel lines have so much in common. It's a shame they'll never meet!",
+                "Why do Java developers wear glasses? Because they can't C sharp!",
+                "Why do programmers prefer dark mode? Because light attracts bugs!",
+                "What do you call 8 hobbits? A hobbyte!"
+            ];
+            speak(jokes[Math.floor(Math.random() * jokes.length)]);
         }
     };
 
@@ -1713,8 +1779,39 @@ document.addEventListener('DOMContentLoaded', () => {
             handled = true;
         }
 
+        // Check for topic-based help commands
+        if (!handled && (command.includes('work life balance') || command.includes('work-life balance') || command.includes('balance work'))) {
+            commands['work life balance']();
+            handled = true;
+        }
+        
+        if (!handled && (command.includes('productivity tip') || command.includes('productive') || command.includes('how to be productive'))) {
+            commands['productivity tip']();
+            handled = true;
+        }
+        
+        if (!handled && (command.includes('study tip') || command.includes('how to study') || command.includes('exam tip'))) {
+            commands['study tip']();
+            handled = true;
+        }
+        
+        if (!handled && (command.includes('career advice') || command.includes('career tip') || command.includes('job advice'))) {
+            commands['career advice']();
+            handled = true;
+        }
+        
+        if (!handled && (command.includes('motivate me') || command.includes('motivation') || command.includes('inspire me'))) {
+            commands['motivation']();
+            handled = true;
+        }
+        
+        if (!handled && (command.includes('tell me a joke') || command.includes('joke') || command.includes('make me laugh'))) {
+            commands['tell me a joke']();
+            handled = true;
+        }
+
         // Check exact command matches first
-        if (commands[command]) {
+        if (!handled && commands[command]) {
             commands[command]();
             handled = true;
         }

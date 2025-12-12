@@ -79,9 +79,11 @@ Open http://127.0.0.1:5000 → Allow microphone/notifications/location → Click
 "open youtube" | "search for climate change"
 ```
 
-**Productivity:**
+**Productivity & Life Advice:**
 ```
 "motivate me" | "give me productivity tips"
+"work life balance advice" | "study tips"
+"career advice" | "tell me a joke"
 ```
 
 ---

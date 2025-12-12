@@ -1220,7 +1220,25 @@ document.addEventListener('DOMContentLoaded', () => {
             "You've got this! Stay focused and take it one task at a time. Need any help?"
         ];
         
-        // Return a random response for questions when AI is unavailable
+        // For random general knowledge questions (cricket, football, etc.) - return null to trigger web search
+        const randomQuestionPatterns = [
+            /cricket/i, /football/i, /soccer/i, /sport/i, /player/i, /team/i,
+            /best.*in.*india/i, /famous.*in/i, /popular.*in/i,
+            /why.*hype/i, /why.*popular/i, /why.*famous/i,
+            /who is.*best/i, /who is.*greatest/i, /who is.*top/i,
+            /history of/i, /capital of/i, /population of/i,
+            /when.*invented/i, /when.*discovered/i, /when.*founded/i
+        ];
+        
+        // Check if it's a random question that should trigger web search
+        for (const pattern of randomQuestionPatterns) {
+            if (pattern.test(lowerMsg)) {
+                console.log('🔍 Random question detected, triggering web search');
+                return null; // Return null to trigger web search
+            }
+        }
+        
+        // Return a random helpful response for basic questions when AI is unavailable
         if (lowerMsg.match(/what|who|when|where|why|how|tell me|can you/)) {
             const randomIndex = Math.floor(Math.random() * randomResponses.length);
             return randomResponses[randomIndex];

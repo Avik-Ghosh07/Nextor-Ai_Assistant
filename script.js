@@ -453,15 +453,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (appScheme && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
             console.log('📱 Mobile detected, trying app:', appScheme);
             
-            // For mobile, directly open the app scheme
-            // If app is installed, it opens; if not, browser shows error or does nothing
-            try {
-                window.location.href = appScheme;
-                console.log('✅ App scheme launched');
-            } catch (error) {
-                console.log('⚠️ App scheme failed, opening web URL:', error);
-                window.open(url, '_blank');
-            }
+            // Try to open app using window.open first (works better on mobile)
+            const appWindow = window.open(appScheme, '_blank');
+            
+            // Set a timeout to open web URL as fallback if app doesn't open
+            setTimeout(() => {
+                // If window.open returned null or was blocked, try web URL
+                if (!appWindow || appWindow.closed || typeof appWindow.closed === 'undefined') {
+                    console.log('⚠️ App not installed or blocked, opening web URL');
+                    window.open(url, '_blank');
+                } else {
+                    console.log('✅ App scheme launched successfully');
+                }
+            }, 500);
         } else {
             // Desktop or no app scheme - just open web URL
             window.open(url, '_blank');
@@ -1379,20 +1383,39 @@ document.addEventListener('DOMContentLoaded', () => {
         gmail: 'https://mail.google.com',
         outlook: 'https://outlook.live.com',
         spotify: 'https://open.spotify.com',
-        twitch: 'https://www.twitch.tv'
+        twitch: 'https://www.twitch.tv',
+        telegram: 'https://web.telegram.org',
+        discord: 'https://discord.com',
+        tiktok: 'https://www.tiktok.com',
+        snapchat: 'https://www.snapchat.com',
+        uber: 'https://www.uber.com',
+        maps: 'https://maps.google.com',
+        'google maps': 'https://maps.google.com',
+        chrome: 'https://www.google.com/chrome'
     };
     
     // Mobile app deep link schemes (will prompt to open app if installed)
     const mobileAppSchemes = {
-        youtube: 'vnd.youtube://',
+        youtube: 'youtube://',
         whatsapp: 'whatsapp://',
-        instagram: 'instagram://',
-        facebook: 'fb://',
+        instagram: 'instagram://user?username=',
+        facebook: 'fb://profile',
         netflix: 'netflix://',
         spotify: 'spotify://',
         gmail: 'googlegmail://',
-        twitter: 'twitter://',
-        linkedin: 'linkedin://'
+        twitter: 'twitter://user?screen_name=',
+        linkedin: 'linkedin://profile',
+        amazon: 'com.amazon.mobile.shopping://',
+        reddit: 'reddit://',
+        github: 'github://',
+        telegram: 'tg://',
+        discord: 'discord://',
+        tiktok: 'tiktok://',
+        snapchat: 'snapchat://',
+        uber: 'uber://',
+        maps: 'maps://',
+        'google maps': 'comgooglemaps://',
+        chrome: 'googlechrome://'
     };
 
     const tips = [

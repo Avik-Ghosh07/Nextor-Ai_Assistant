@@ -1188,36 +1188,71 @@ document.addEventListener('DOMContentLoaded', () => {
             "The only way to do great work is to love what you do. What are you working on today?",
             "Believe you can and you're halfway there. What's your goal for today?",
             "The future belongs to those who believe in the beauty of their dreams. What's your dream project?",
+            "Success is not final, failure is not fatal: it is the courage to continue that counts.",
+            "The only way to do great work is to love what you do. - Steve Jobs",
+            "Don't watch the clock; do what it does. Keep going! - Sam Levenson",
+            "Believe you can and you're halfway there. - Theodore Roosevelt",
+            "The harder you work for something, the greater you'll feel when you achieve it.",
+            "Dream big, start small, act now. What's your first step today?",
+            "Your limitation—it's only your imagination. What will you create today?",
             
             // Productivity tips
             "Try the Pomodoro Technique: 25 minutes of focused work, then a 5-minute break. Want to set a reminder?",
             "Start with your most important task first thing in the morning when your energy is highest!",
             "Eliminate distractions: turn off notifications, close extra tabs, and focus on one task at a time.",
             "Use the 2-minute rule: if a task takes less than 2 minutes, do it immediately!",
+            "Batch similar tasks together to minimize context switching and boost efficiency!",
+            "Take regular breaks! Your brain needs rest to maintain peak performance throughout the day.",
+            "Set SMART goals: Specific, Measurable, Achievable, Relevant, and Time-bound.",
+            "Declutter your workspace - a clean desk leads to a clear mind and better focus!",
+            "Plan tomorrow tonight: spend 10 minutes reviewing your priorities for the next day.",
+            "Use the Eisenhower Matrix: Urgent vs Important. Focus on important, not just urgent!",
+            "Time-block your calendar: allocate specific time slots for different types of work.",
+            "Practice the 80/20 rule: 80% of results come from 20% of efforts. Find your high-impact tasks!",
             
             // Fun facts
             "Fun fact: The Eiffel Tower can be six inches taller during summer because metal expands when heated!",
             "Did you know? A teaspoon of honey is the life's work of 12 bees!",
             "Interesting fact: Octopuses have three hearts and their blood is blue!",
             "Fun fact: Bananas glow blue under black lights due to chlorophyll breakdown!",
+            "Amazing fact: Your brain generates about 12-25 watts of electricity - enough to power a low-wattage LED!",
+            "Did you know? The longest English word is 189,819 letters long - it's the chemical name for titin!",
+            "Cool fact: Scotland's national animal is the unicorn! 🦄",
+            "Fascinating: A single bolt of lightning contains enough energy to toast 100,000 slices of bread!",
+            "Mind-blowing: There are more possible iterations of a chess game than atoms in the known universe!",
+            "Fun fact: The world's oldest known living tree is over 5,000 years old!",
             
             // Helpful suggestions
             "I can help you with: playing music, checking weather, setting reminders, doing calculations, opening websites, and more!",
             "Need help with productivity? I can share tips, set reminders, or play focus music for you!",
             "Want to stay organized? I can help you manage tasks, set reminders, and plan your day!",
             "I'm here to boost your productivity! Try asking me to play music, check weather, or give you a productivity tip!",
+            "Looking for inspiration? Ask me for a motivational quote or a fun fact!",
+            "Need a laugh? I've got jokes! Or I can help with practical tasks like calculations and web searches.",
             
             // Jokes
             "Why don't programmers trust stairs? Because they're always up to something! 😄",
             "Why did the computer go to therapy? It had too many bytes of emotional baggage! 😂",
             "Parallel lines have so much in common. It's a shame they'll never meet! 😅",
             "Why do Java developers wear glasses? Because they can't C sharp! 👓",
+            "What's a programmer's favorite hangout place? Foo Bar! 🍺",
+            "Why did the developer go broke? Because he used up all his cache! 💸",
+            "How many programmers does it take to change a light bulb? None, that's a hardware problem! 💡",
+            "Why do programmers prefer dark mode? Because light attracts bugs! 🐛",
+            "What do you call 8 hobbits? A hobbyte! 😄",
+            "Why did the scarecrow win an award? He was outstanding in his field! 🌾",
+            "I told my computer I needed a break... now it won't stop sending me Kit-Kats! 🍫",
+            "Why don't scientists trust atoms? Because they make up everything! ⚛️",
             
             // Encouragement
             "You're doing great! Remember, progress is better than perfection. What can I help you with?",
             "Every expert was once a beginner. Keep learning and growing! How can I assist you today?",
             "Small steps lead to big achievements. What's your next small step?",
-            "You've got this! Stay focused and take it one task at a time. Need any help?"
+            "You've got this! Stay focused and take it one task at a time. Need any help?",
+            "Today's struggles are developing tomorrow's strengths. Keep pushing forward!",
+            "You're capable of amazing things! What challenge are you tackling today?",
+            "Remember: every accomplishment starts with the decision to try. You're already on your way!",
+            "Be proud of how far you've come, and excited about how far you'll go!"
         ];
         
         // For random general knowledge questions (cricket, football, etc.) - return null to trigger web search

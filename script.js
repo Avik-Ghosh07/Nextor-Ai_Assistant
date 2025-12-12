@@ -2232,6 +2232,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Function to add chat message to UI
     function addChatMessage(role, text) {
+        if (!chatMessages) return;
+        
         // Remove placeholder if exists
         const placeholder = chatMessages.querySelector('.text-center');
         if (placeholder) {
@@ -2259,6 +2261,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Function to show typing indicator
     function showTypingIndicator() {
+        if (!chatMessages) return;
+        
         const typingDiv = document.createElement('div');
         typingDiv.className = 'chat-message bot typing-indicator-container';
         typingDiv.id = 'typing-indicator';
@@ -2283,6 +2287,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Function to send text chat message
     async function sendTextChatMessage() {
+        if (!chatInput) return;
+        
         const message = validateInput(chatInput.value.trim(), 1000);
         if (!message || message.length < 1) return;
         
@@ -2444,15 +2450,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (clearChatBtn) {
         clearChatBtn.addEventListener('click', () => {
             // Clear all messages
-            chatMessages.innerHTML = `
-                <div class="text-center py-8">
-                    <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-purple-500/20 flex items-center justify-center">
-                        <i class="fas fa-robot text-purple-400 text-xl"></i>
+            if (chatMessages) {
+                chatMessages.innerHTML = `
+                    <div class="text-center py-8">
+                        <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-purple-500/20 flex items-center justify-center">
+                            <i class="fas fa-robot text-purple-400 text-xl"></i>
+                        </div>
+                        <p class="text-gray-400 text-sm font-medium">Start chatting with Nextor</p>
+                        <p class="text-gray-500 text-xs mt-1">Type your message below</p>
                     </div>
-                    <p class="text-gray-400 text-sm font-medium">Start chatting with Nextor</p>
-                    <p class="text-gray-500 text-xs mt-1">Type your message below</p>
-                </div>
-            `;
+                `;
+            }
         });
     }
     
@@ -2737,54 +2745,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ===========================
     // SMART REMINDER ENHANCEMENTS
     // ===========================
-    
-    // Update add reminder to include new fields
-    const originalAddReminderHandler = addReminderBtn ? addReminderBtn.onclick : null;
-    if (addReminderBtn) {
-        addReminderBtn.onclick = null;
-        addReminderBtn.addEventListener('click', () => {
-            const task = reminderTaskInput.value.trim();
-            const timeStr = reminderTimeInput.value.trim();
-            const repeat = reminderRepeat ? reminderRepeat.value : 'once';
-            const category = reminderCategory ? reminderCategory.value : 'personal';
-            const priority = reminderPrioritySelect ? reminderPrioritySelect.value : 'medium';
-            
-            if (!task || !timeStr) {
-                speak('Please enter both task and time for the reminder');
-                return;
-            }
-            
-            const scheduledTime = parseTimeToDate(timeStr);
-            if (!scheduledTime) {
-                speak('I could not understand that time format. Try 5pm or in 30 minutes');
-                return;
-            }
-            
-            const reminder = {
-                task,
-                time: scheduledTime.toISOString(),
-                repeat,
-                category,
-                priority,
-                createdAt: new Date().toISOString()
-            };
-            
-            reminders.push(reminder);
-            users[currentUser].reminders = reminders;
-            safeSetLocalStorage('nextor_reminders', JSON.stringify(reminders));
-            safeSetLocalStorage('nextor_users', JSON.stringify(users));
-            
-            scheduleReminder(reminder, reminders.length - 1);
-            renderReminders();
-            
-            reminderTaskInput.value = '';
-            reminderTimeInput.value = '';
-            
-            const timeLabel = scheduledTime.toLocaleString();
-            const repeatLabel = repeat !== 'once' ? ` (${repeat})` : '';
-            speak(`Smart reminder set for ${timeLabel}${repeatLabel}: ${task}`);
-        });
-    }
+    // Note: Removed duplicate reminder handler - already handled at line 2090
 
     // Debug logging (only in development)
     const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';

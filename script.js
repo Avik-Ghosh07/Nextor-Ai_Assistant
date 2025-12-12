@@ -477,19 +477,57 @@ document.addEventListener('DOMContentLoaded', () => {
         if (appScheme && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
             console.log('📱 Mobile detected, trying app:', appScheme);
             
-            // Try to open app using window.open first (works better on mobile)
-            const appWindow = window.open(appScheme, '_blank');
+            // For social media apps, use web URLs that auto-redirect to app if installed
+            const socialMediaApps = ['whatsapp', 'instagram', 'facebook', 'twitter', 'tiktok', 'snapchat'];
+            const isSocialMedia = socialMediaApps.some(app => 
+                appScheme.includes(app) || url.includes(app)
+            );
             
-            // Set a timeout to open web URL as fallback if app doesn't open
-            setTimeout(() => {
-                // If window.open returned null or was blocked, try web URL
-                if (!appWindow || appWindow.closed || typeof appWindow.closed === 'undefined') {
-                    console.log('⚠️ App not installed or blocked, opening web URL');
-                    window.open(url, '_blank');
+            if (isSocialMedia) {
+                // These web URLs automatically open the app if installed
+                window.open(url, '_blank');
+                return;
+            }
+            
+            // For other apps, try deep link with fallback detection
+            let appOpened = false;
+            const startTime = Date.now();
+            
+            // Try to open the app
+            window.location.href = appScheme;
+            
+            // Check if app opened by monitoring page visibility
+            const checkAppOpened = setTimeout(() => {
+                const timeElapsed = Date.now() - startTime;
+                
+                // If page is still visible and minimal time passed, app likely didn't open
+                if (document.hidden || timeElapsed > 2000) {
+                    // App opened successfully
+                    appOpened = true;
+                    console.log('✅ App opened successfully');
                 } else {
-                    console.log('✅ App scheme launched successfully');
+                    // App not installed, open web URL
+                    console.log('⚠️ App not installed, opening web URL');
+                    window.open(url, '_blank');
                 }
-            }, 500);
+            }, 1500);
+            
+            // Cleanup on page hide (app opened)
+            const handleVisibilityChange = () => {
+                if (document.hidden) {
+                    appOpened = true;
+                    clearTimeout(checkAppOpened);
+                    document.removeEventListener('visibilitychange', handleVisibilityChange);
+                }
+            };
+            
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+            
+            // Fallback cleanup
+            setTimeout(() => {
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+            }, 3000);
+            
         } else {
             // Desktop or no app scheme - just open web URL
             window.open(url, '_blank');
@@ -1391,7 +1429,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Website and app URLs with mobile deep links
     const websiteMap = {
         youtube: 'https://www.youtube.com',
-        whatsapp: 'https://wa.me/', // Opens WhatsApp on mobile
+        whatsapp: 'https://web.whatsapp.com', // Opens WhatsApp Web which redirects to app on mobile
         instagram: 'https://www.instagram.com',
         facebook: 'https://www.facebook.com',
         google: 'https://www.google.com',
@@ -1421,21 +1459,21 @@ document.addEventListener('DOMContentLoaded', () => {
     // Mobile app deep link schemes (will prompt to open app if installed)
     const mobileAppSchemes = {
         youtube: 'youtube://',
-        whatsapp: 'whatsapp://',
-        instagram: 'instagram://user?username=',
-        facebook: 'fb://profile',
+        whatsapp: 'https://web.whatsapp.com', // Web URL auto-opens app
+        instagram: 'https://www.instagram.com', // Web URL auto-opens app
+        facebook: 'https://www.facebook.com', // Web URL auto-opens app
         netflix: 'netflix://',
         spotify: 'spotify://',
         gmail: 'googlegmail://',
-        twitter: 'twitter://user?screen_name=',
-        linkedin: 'linkedin://profile',
-        amazon: 'com.amazon.mobile.shopping://',
+        twitter: 'https://twitter.com', // Web URL auto-opens app
+        linkedin: 'linkedin://',
+        amazon: 'amazon://',
         reddit: 'reddit://',
         github: 'github://',
         telegram: 'tg://',
         discord: 'discord://',
-        tiktok: 'tiktok://',
-        snapchat: 'snapchat://',
+        tiktok: 'https://www.tiktok.com', // Web URL auto-opens app
+        snapchat: 'https://www.snapchat.com', // Web URL auto-opens app
         uber: 'uber://',
         maps: 'maps://',
         'google maps': 'comgooglemaps://',

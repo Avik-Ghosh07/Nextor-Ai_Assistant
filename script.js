@@ -1509,6 +1509,19 @@ document.addEventListener('DOMContentLoaded', () => {
         "I tried to catch fog yesterday. Mist."
     ];
 
+    const examTips = [
+        "Start early and create a study schedule. Don't leave everything for the last minute.",
+        "Practice with past exam papers to understand the format and time constraints.",
+        "Take regular breaks. Your brain needs rest to consolidate information.",
+        "Stay hydrated and eat healthy foods to fuel your brain.",
+        "Explain what you've learned to someone else. Teaching is a great way to learn.",
+        "Get a good night's sleep before the exam. A tired brain makes mistakes.",
+        "Focus on understanding concepts rather than just memorizing facts.",
+        "Use mnemonic devices like acronyms or rhymes to remember lists or sequences.",
+        "Organize your study space. A clutter-free environment helps with focus.",
+        "Stay positive and believe in yourself. Confidence plays a big role in success."
+    ];
+
     // Popular Hindi songs for random selection
     const hindiSongs = [
         { title: 'Tum Hi Ho - Aashiqui 2', url: 'https://www.youtube.com/watch?v=IJq0yyWug1k' },
@@ -1807,6 +1820,21 @@ document.addEventListener('DOMContentLoaded', () => {
             ];
             speak(tips[Math.floor(Math.random() * tips.length)]);
         },
+        'exam preparation tip': () => {
+            const tips = [
+                "Start early and create a study schedule. Don't leave everything for the last minute.",
+                "Practice with past exam papers to understand the format and time constraints.",
+                "Take regular breaks. Your brain needs rest to consolidate information.",
+                "Stay hydrated and eat healthy foods to fuel your brain.",
+                "Explain what you've learned to someone else. Teaching is a great way to learn.",
+                "Get a good night's sleep before the exam. A tired brain makes mistakes.",
+                "Focus on understanding concepts rather than just memorizing facts.",
+                "Use mnemonic devices like acronyms or rhymes to remember lists or sequences.",
+                "Organize your study space. A clutter-free environment helps with focus.",
+                "Stay positive and believe in yourself. Confidence plays a big role in success."
+            ];
+            speak(tips[Math.floor(Math.random() * tips.length)]);
+        },
         'career advice': () => {
             const advice = [
                 "Career tip: Build projects, not just certificates. Real work speaks louder than credentials!",
@@ -1909,7 +1937,7 @@ document.addEventListener('DOMContentLoaded', () => {
             handled = true;
         }
         
-        if (!handled && (command.includes('study tip') || command.includes('how to study') || command.includes('exam tip'))) {
+        if (!handled && (command.includes('study tip') || command.includes('how to study'))) {
             commands['study tip']();
             handled = true;
         }
@@ -1921,6 +1949,11 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (!handled && (command.includes('motivate me') || command.includes('motivation') || command.includes('inspire me'))) {
             commands['motivation']();
+            handled = true;
+        }
+
+        if (!handled && (command.includes('exam tip') || command.includes('exam preparation') || command.includes('prepare for exam'))) {
+            commands['exam preparation tip']();
             handled = true;
         }
         

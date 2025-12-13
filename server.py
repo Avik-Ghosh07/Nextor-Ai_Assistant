@@ -16,6 +16,13 @@ try:
 except ImportError:
     GEMINI_AVAILABLE = False
 
+# Import BeautifulSoup (optional dependency for web scraping)
+try:
+    from bs4 import BeautifulSoup
+    BS4_AVAILABLE = True
+except ImportError:
+    BS4_AVAILABLE = False
+
 # Load environment variables
 load_dotenv()
 
@@ -107,8 +114,9 @@ gemini_model = None
 if GEMINI_AVAILABLE and GEMINI_API_KEY:
     try:
         genai.configure(api_key=GEMINI_API_KEY)
-        gemini_model = genai.GenerativeModel('gemini-2.0-flash-exp')
-        print("✅ Gemini AI initialized successfully (gemini-2.0-flash-exp)")
+        # Use gemini-flash-latest as it seems to have available quota
+        gemini_model = genai.GenerativeModel('gemini-flash-latest')
+        print("✅ Gemini AI initialized successfully (gemini-flash-latest)")
     except Exception as e:
         print(f"⚠️ Gemini AI initialization failed: {e}")
         print("ℹ️ App will use web search and built-in responses as fallback")
@@ -293,11 +301,11 @@ def _clean_message(message: str) -> str:
 
 
 def _search_web(query: str) -> str | None:
-    """Search the web using Wikipedia API for factual queries, fallback to Google scraping."""
+    """Search the web using multiple methods: Wikipedia API, DuckDuckGo Instant Answer, and Google scraping."""
     try:
         print(f"🔍 Searching web for: {query}")
         
-        # First try Wikipedia API for factual queries (works great for "who is", "what is")
+        # Method 1: Try Wikipedia API for factual queries (works great for "who is", "what is")
         try:
             # Extract the subject from the query
             search_term = query.lower()
@@ -305,13 +313,14 @@ def _search_web(query: str) -> str | None:
             search_term = search_term.replace('what is ', '').replace('what are ', '')
             search_term = search_term.replace('where is ', '').replace('where are ', '')
             search_term = search_term.replace('when was ', '').replace('when is ', '')
+            search_term = search_term.replace('tell me about ', '').replace('explain ', '')
             search_term = search_term.strip()
             
             # Common name mappings
             name_mappings = {
                 'amazon forest': 'Amazon rainforest',
                 'amazon jungle': 'Amazon rainforest',
-                'amazon': 'Amazon rainforest',
+                'jensen wang': 'Jensen Huang',  # Common typo
             }
             
             # Use mapped name if available
@@ -333,7 +342,7 @@ def _search_web(query: str) -> str | None:
                 'User-Agent': 'NextorAI/1.0 (Educational Project; Python/requests)'
             }
             
-            wiki_response = requests.get(wiki_url, params=wiki_params, headers=headers, timeout=5)
+            wiki_response = requests.get(wiki_url, params=wiki_params, headers=headers, timeout=8)
             wiki_response.raise_for_status()
             wiki_data = wiki_response.json()
             
@@ -342,7 +351,7 @@ def _search_web(query: str) -> str | None:
                 if page_id != '-1' and 'extract' in page:
                     extract = page['extract'].strip()
                     if extract and len(extract) > 50:
-                        # Limit to first 2-3 sentences
+                        # Limit to first 2-3 sentences for concise answers
                         sentences = extract.split('. ')[:3]
                         answer = '. '.join(sentences)
                         if not answer.endswith('.'):
@@ -350,47 +359,119 @@ def _search_web(query: str) -> str | None:
                         # Limit length
                         if len(answer) > 500:
                             answer = answer[:497] + "..."
-                        print(f"✅ Found Wikipedia answer")
+                        print(f"✅ Found Wikipedia answer for: {wiki_title}")
                         return answer
+            print(f"⚠️ Wikipedia had no article for: {wiki_title}")
         except Exception as wiki_error:
             print(f"⚠️ Wikipedia search failed: {wiki_error}")
         
-        # Fallback to Google search scraping
-        print(f"🔍 Trying Google search...")
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
+        # Method 2: Try DuckDuckGo Instant Answer API (free, no rate limits)
+        try:
+            print(f"🔍 Trying DuckDuckGo Instant Answer API...")
+            ddg_url = "https://api.duckduckgo.com/"
+            ddg_params = {
+                'q': query,
+                'format': 'json',
+                'no_html': 1,
+                'skip_disambig': 1
+            }
+            
+            ddg_response = requests.get(ddg_url, params=ddg_params, timeout=5)
+            ddg_response.raise_for_status()
+            ddg_data = ddg_response.json()
+            
+            # Try different answer fields
+            answer = None
+            if ddg_data.get('AbstractText'):
+                answer = ddg_data['AbstractText']
+            elif ddg_data.get('Answer'):
+                answer = ddg_data['Answer']
+            elif ddg_data.get('Definition'):
+                answer = ddg_data['Definition']
+            
+            if answer and len(answer) > 50:
+                # Limit to first 3 sentences
+                sentences = answer.split('. ')[:3]
+                answer = '. '.join(sentences)
+                if not answer.endswith('.'):
+                    answer += '.'
+                if len(answer) > 500:
+                    answer = answer[:497] + "..."
+                print(f"✅ Found DuckDuckGo answer")
+                return answer
+            else:
+                print(f"⚠️ DuckDuckGo returned no useful answer")
+        except Exception as ddg_error:
+            print(f"⚠️ DuckDuckGo search failed: {ddg_error}")
         
-        search_url = f"https://www.google.com/search?q={requests.utils.quote(query)}"
-        response = requests.get(search_url, headers=headers, timeout=5)
-        response.raise_for_status()
+        # Method 3: Fallback to Google search scraping (last resort)
+        try:
+            if not BS4_AVAILABLE:
+                print("⚠️ BeautifulSoup not installed, skipping Google search scraping")
+                raise ImportError("bs4 not available")
+            
+            print(f"🔍 Trying Google search scraping...")
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1'
+            }
+            
+            search_url = f"https://www.google.com/search?q={requests.utils.quote(query)}&hl=en"
+            response = requests.get(search_url, headers=headers, timeout=8)
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Try multiple selectors for different Google result types
+            answer = None
+            
+            # Featured snippet selectors (updated for 2025)
+            selectors = [
+                'div.hgKElc',           # Featured snippet text
+                'span.hgKElc',          # Featured snippet span
+                'div.IZ6rdc',           # Alternative featured snippet
+                'span.aCOpRe',          # Definition box
+                'div.kno-rdesc span',   # Knowledge panel description
+                'div.V3FYCf',           # Answer box
+                'div.ayRjaf',           # Direct answer
+            ]
+            
+            for selector in selectors:
+                elements = soup.select(selector)
+                for element in elements:
+                    text = element.get_text(strip=True)
+                    if text and len(text) > 50:
+                        answer = text
+                        print(f"✅ Found Google answer with selector: {selector}")
+                        break
+                if answer:
+                    break
+            
+            if answer:
+                # Clean up the answer
+                answer = answer.strip().replace('Wikipedia', '').strip()
+                # Limit to first 3 sentences
+                sentences = answer.split('. ')[:3]
+                answer = '. '.join(sentences)
+                if not answer.endswith('.'):
+                    answer += '.'
+                if len(answer) > 500:
+                    answer = answer[:497] + "..."
+                return answer
+            else:
+                print(f"⚠️ Google scraping found no answers")
+        except ImportError:
+            print(f"❌ BeautifulSoup not installed - cannot scrape Google")
+        except Exception as google_error:
+            print(f"⚠️ Google search scraping failed: {google_error}")
         
-        from bs4 import BeautifulSoup
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Try multiple selectors
-        answer = None
-        
-        # Featured snippet
-        for selector in ['div.hgKElc', 'span.hgKElc', 'div.IZ6rdc', 'span.aCOpRe']:
-            element = soup.find(class_=selector.split('.')[-1])
-            if element:
-                answer = element.get_text(strip=True)
-                print(f"✅ Found Google answer with selector: {selector}")
-                break
-        
-        if answer:
-            answer = answer.strip().replace('Wikipedia', '').strip()
-            if len(answer) > 500:
-                answer = answer[:497] + "..."
-            return answer
-        
-        print(f"⚠️ No web answer found for: {query}")
+        print(f"❌ All web search methods failed for: {query}")
         return None
         
-    except ImportError:
-        print(f"❌ BeautifulSoup not installed")
-        return None
     except Exception as e:
         print(f"❌ Web search error: {e}")
         return None
@@ -403,7 +484,7 @@ def _get_gemini_reply(message: str, history: List[Dict[str, str]]) -> str | None
         return None
     
     try:
-        print(f"🤖 Sending to Gemini AI: {message}")
+        print(f"🤖 Sending to Gemini AI: {message[:100]}...")
         # Build conversation context for Gemini (minimal for speed)
         context = "You are Nextor, an AI assistant. Answer directly and concisely in under 100 words. Be helpful and accurate.\n\n"
         
@@ -419,14 +500,14 @@ def _get_gemini_reply(message: str, history: List[Dict[str, str]]) -> str | None
         # Generate response with Gemini (optimized for speed)
         generation_config = {
             "temperature": 0.7,
-            "max_output_tokens": 150,  # Reduced for faster replies
+            "max_output_tokens": 200,  # Reasonable limit for quality answers
             "top_p": 0.95,
             "top_k": 40
         }
         response = gemini_model.generate_content(
             context,
             generation_config=generation_config,
-            request_options={"timeout": 3}  # 3 second timeout for speed
+            request_options={"timeout": 5}  # 5 second timeout
         )
         
         if response and response.text:
@@ -436,12 +517,20 @@ def _get_gemini_reply(message: str, history: List[Dict[str, str]]) -> str | None
                 reply = reply[7:].strip()
             elif reply.lower().startswith('assistant:'):
                 reply = reply[10:].strip()
-            print(f"✅ Gemini replied: {reply[:100]}...")
+            print(f"✅ Gemini replied successfully")
             return reply
-        return None
+        else:
+            print(f"⚠️ Gemini returned empty response")
+            return None
         
     except Exception as e:
-        print(f"❌ Gemini AI error (using fallback): {e}")
+        error_msg = str(e)
+        if '429' in error_msg or 'quota' in error_msg.lower():
+            print(f"❌ Gemini quota exceeded - switching to web search fallback")
+        elif 'timeout' in error_msg.lower():
+            print(f"❌ Gemini timeout - switching to web search fallback")
+        else:
+            print(f"❌ Gemini error: {error_msg} - switching to fallback")
         return None
 
 
@@ -451,6 +540,16 @@ def _get_builtin_knowledge(query: str) -> str | None:
     
     # Technical knowledge base
     knowledge_base = {
+        # People (Tech Leaders)
+        'jensen huang': "Jensen Huang is the co-founder, president, and CEO of NVIDIA Corporation, a leading technology company known for graphics processing units (GPUs) and AI computing. He founded NVIDIA in 1993 and has led the company's transformation from a gaming graphics company to a leader in AI and data center technology.",
+        'jensen wang': "You may be thinking of Jensen Huang, the co-founder and CEO of NVIDIA Corporation. He's a prominent tech leader who has guided NVIDIA to become a leader in GPUs, AI computing, and data center technology since founding the company in 1993.",
+        'elon musk': "Elon Musk is a technology entrepreneur and CEO of multiple companies including Tesla (electric vehicles), SpaceX (aerospace), and X/Twitter (social media). He's known for ambitious projects in sustainable energy, space exploration, and artificial intelligence.",
+        'mark zuckerberg': "Mark Zuckerberg is the co-founder and CEO of Meta Platforms (formerly Facebook). He created Facebook in 2004 while at Harvard University and has grown it into one of the world's largest social media and technology companies.",
+        'sam altman': "Sam Altman is the CEO of OpenAI, the company behind ChatGPT and GPT-4. He previously led Y Combinator, a prestigious startup accelerator, and is a prominent figure in artificial intelligence development and AI safety discussions.",
+        'satya nadella': "Satya Nadella is the CEO of Microsoft since 2014. Under his leadership, Microsoft has focused on cloud computing (Azure), AI integration, and open-source technologies, transforming the company's culture and business strategy.",
+        'sundar pichai': "Sundar Pichai is the CEO of Alphabet Inc. and its subsidiary Google. He joined Google in 2004 and has overseen the development of products like Chrome, Chrome OS, and Google Drive before becoming CEO.",
+        
+        # Technologies
         'next js': "Next.js is a powerful React framework for building production-ready web applications. It provides features like server-side rendering, static site generation, API routes, and automatic code splitting. Created by Vercel, it's popular for building fast, SEO-friendly websites.",
         'nextjs': "Next.js is a powerful React framework for building production-ready web applications. It provides features like server-side rendering, static site generation, API routes, and automatic code splitting. Created by Vercel, it's popular for building fast, SEO-friendly websites.",
         'react': "React is a JavaScript library for building user interfaces, developed by Facebook. It uses a component-based architecture and virtual DOM for efficient rendering. React is widely used for creating interactive, single-page applications.",
@@ -558,6 +657,13 @@ def _choose_reply(message: str, history: List[Dict[str, str]]) -> str:
     gemini_reply = _get_gemini_reply(message, history)
     if gemini_reply:
         return gemini_reply
+    
+    # If Gemini fails, check built-in knowledge for people questions too
+    if is_person_question:
+        builtin_answer = _get_builtin_knowledge(message)
+        if builtin_answer:
+            print(f"✅ Using built-in knowledge for person query")
+            return builtin_answer
     
     # If Gemini fails, try web search for ALL questions (not just specific patterns)
     if is_question:
@@ -699,7 +805,14 @@ def _choose_reply(message: str, history: List[Dict[str, str]]) -> str:
 
     # General helpful response - but if it's a question that failed, indicate we couldn't answer
     if is_question:
-        return f"I apologize, but I couldn't find information about '{message}'. My AI quota is currently exceeded and the web search didn't return results. Please try again later or rephrase your question."
+        return (
+            f"I apologize, but I couldn't find information about '{message}'. "
+            "This may be because:\n"
+            "• My Gemini AI quota has been temporarily exceeded (resets daily)\n"
+            "• The web search didn't find relevant results\n"
+            "• The query may need to be rephrased\n\n"
+            "Please try again later, rephrase your question, or ask about topics like productivity, music, weather, or general tech questions."
+        )
     
     # For non-questions, provide general helpful response
     helpful_responses = [

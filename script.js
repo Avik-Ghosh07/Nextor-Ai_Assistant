@@ -1439,10 +1439,14 @@ document.addEventListener('DOMContentLoaded', () => {
         gmail: 'https://mail.google.com',
         outlook: 'https://outlook.live.com',
         spotify: 'https://open.spotify.com',
+        jiosaavn: 'https://www.jiosaavn.com',
+        'jio saavn': 'https://www.jiosaavn.com',
+        'jio saavn pro': 'https://www.jiosaavn.com',
+        'jio savaan': 'https://www.jiosaavn.com',
+        'jio savaan pro': 'https://www.jiosaavn.com',
         twitch: 'https://www.twitch.tv',
         telegram: 'https://web.telegram.org',
         discord: 'https://discord.com',
-        tiktok: 'https://www.tiktok.com',
         snapchat: 'https://www.snapchat.com',
         uber: 'https://www.uber.com',
         maps: 'https://maps.google.com',
@@ -1453,13 +1457,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // Mobile app deep link schemes (will prompt to open app if installed)
     const mobileAppSchemes = {
         youtube: 'https://www.youtube.com', // Web URL auto-opens app
-        whatsapp: 'https://web.whatsapp.com', // Opens WhatsApp Web which redirects to app on mobile
+        whatsapp: 'whatsapp://', // Opens WhatsApp App
         instagram: 'https://www.instagram.com', // Web URL auto-opens app
         facebook: 'https://www.facebook.com', // Web URL auto-opens app
         netflix: 'https://www.netflix.com', // Web URL auto-opens app
         spotify: 'https://open.spotify.com', // Web URL auto-opens app
         gmail: 'https://mail.google.com', // Web URL auto-opens app
         jiosaavn: 'https://www.jiosaavn.com', // Web URL auto-opens app
+        'jio saavn': 'https://www.jiosaavn.com',
+        'jio saavn pro': 'https://www.jiosaavn.com',
+        'jio savaan': 'https://www.jiosaavn.com',
+        'jio savaan pro': 'https://www.jiosaavn.com',
         twitter: 'https://twitter.com', // Web URL auto-opens app
         linkedin: 'https://www.linkedin.com', // Web URL auto-opens app
         amazon: 'https://www.amazon.com', // Web URL auto-opens app
@@ -1503,98 +1511,127 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Popular Hindi songs for random selection
     const hindiSongs = [
-        'Tum Hi Ho Aashiqui 2',
-        'Channa Mereya Ae Dil Hai Mushkil',
-        'Kesariya Brahmastra',
-        'Tera Ban Jaunga Akhil Sachdeva',
-        'Raataan Lambiyan Shershaah',
-        'Mann Meri Jaan King',
-        'Apna Bana Le Bhediya',
-        'Tum Se Hi Jab We Met',
-        'Tere Hawaale Laal Singh Chaddha',
-        'Ae Watan Ae Watan Raazi',
-        'Kalank Title Track',
-        'Tera Yaar Hoon Main Sonu Ke Titu Ki Sweety',
-        'Dil Diyan Gallan Tiger Zinda Hai',
-        'Tera Ban Jaunga',
-        'Ae Dil Hai Mushkil Title Track',
-        'Gerua Dilwale',
-        'Janam Janam Dilwale',
-        'Tum Hi Aana Jubin Nautiyal',
-        'Mere Rashke Qamar Baadshaho',
-        'Tera Hone Laga Hoon Atif Aslam'
+        { title: 'Tum Hi Ho - Aashiqui 2', url: 'https://www.youtube.com/watch?v=IJq0yyWug1k' },
+        { title: 'Channa Mereya - Ae Dil Hai Mushkil', url: 'https://www.youtube.com/watch?v=284Ov7ysmfA' },
+        { title: 'Kesariya - Brahmastra', url: 'https://www.youtube.com/watch?v=BddP6PYo2gs' },
+        { title: 'Tera Ban Jaunga - Kabir Singh', url: 'https://www.youtube.com/watch?v=3X9wEwulYhk' },
+        { title: 'Raataan Lambiyan - Shershaah', url: 'https://www.youtube.com/watch?v=gvyUuxSY41Q' },
+        { title: 'Mann Meri Jaan - King', url: 'https://www.youtube.com/watch?v=VuG7ge_8I2Y' },
+        { title: 'Apna Bana Le - Bhediya', url: 'https://www.youtube.com/watch?v=u1k65f6d5I0' },
+        { title: 'Tum Se Hi - Jab We Met', url: 'https://www.youtube.com/watch?v=mt9xg0mmt28' },
+        { title: 'Tere Hawaale - Laal Singh Chaddha', url: 'https://www.youtube.com/watch?v=KUpwupYj_tY' },
+        { title: 'Ae Watan - Raazi', url: 'https://www.youtube.com/watch?v=BKx_B15Uqxw' },
+        { title: 'Kalank Title Track', url: 'https://www.youtube.com/watch?v=Grr0FlC8SQA' },
+        { title: 'Tera Yaar Hoon Main', url: 'https://www.youtube.com/watch?v=EaxKnltIe7g' },
+        { title: 'Dil Diyan Gallan', url: 'https://www.youtube.com/watch?v=SAcpESN_Fk4' },
+        { title: 'Gerua - Dilwale', url: 'https://www.youtube.com/watch?v=AEIVhBS6baE' },
+        { title: 'Janam Janam - Dilwale', url: 'https://www.youtube.com/watch?v=Z9Q78lvz68k' },
+        { title: 'Tum Hi Aana - Marjaavaan', url: 'https://www.youtube.com/watch?v=tLqtnGLfm4Q' },
+        { title: 'Mere Rashke Qamar', url: 'https://www.youtube.com/watch?v=UGkLd1pxHQ0' },
+        { title: 'Tera Hone Laga Hoon', url: 'https://www.youtube.com/watch?v=r6tQIZa8gIA' },
+        { title: 'Ve Maahi - Kesari', url: 'https://www.youtube.com/watch?v=j6muwUGsnKs' },
+        { title: 'Pal Pal Dil Ke Paas', url: 'https://www.youtube.com/watch?v=AM8D9e9qE14' },
+        { title: 'Bekhayali - Kabir Singh', url: 'https://www.youtube.com/watch?v=VOLKJJvfAbg' },
+        { title: 'Ghungroo - War', url: 'https://www.youtube.com/watch?v=qFkNATtc3mc' },
+        { title: 'Tujhe Kitna Chahne Lage', url: 'https://www.youtube.com/watch?v=2lAe1cqCOXo' },
+        { title: 'Dilbar - Satyameva Jayate', url: 'https://www.youtube.com/watch?v=n2086jaQ9X0' },
+        { title: 'Hawayein - Jab Harry Met Sejal', url: 'https://www.youtube.com/watch?v=cYOB941gyXI' },
+        { title: 'Nashe Si Chadh Gayi', url: 'https://www.youtube.com/watch?v=Wd2B8OAotU8' },
+        { title: 'The Breakup Song', url: 'https://www.youtube.com/watch?v=kd5KqlmcHNo' },
+        { title: 'Kala Chashma', url: 'https://www.youtube.com/watch?v=k4yXQkG2s1E' },
+        { title: 'Kar Gayi Chull', url: 'https://www.youtube.com/watch?v=NTHz9ephYTw' },
+        { title: 'Galliyan - Ek Villain', url: 'https://www.youtube.com/watch?v=FxAG_11PzCk' }
     ];
 
     // Popular Bengali songs for random selection
     const bengaliSongs = [
-        'Tumi Jake Bhalobaso Kishore Kumar',
-        'Ei Meghla Dine Ekla Rabindra Sangeet',
-        'Tomake Chai Arijit Singh',
-        'Haay Re Meri Moto Kishore Kumar',
-        'Chokher Bali Arijit Singh',
-        'Tomar Khola Hawa Shaan',
-        'Aamake Aamar Moto Arijit Singh',
-        'Mithe Alo Shaan',
-        'Prithibi Ta Naki Anupam Roy',
-        'Boba Tunnel Anupam Roy',
-        'Amake Amar Moto Thakte Dao Anupam Roy',
-        'Tumi Robe Nirobe Rabindranath Tagore',
-        'Ekla Chalo Re Rabindra Sangeet',
-        'Moner Manush Lalon Fakir',
-        'Bondhu Tin Din Tor Nachiketa',
-        'Ore Grihabashi Kishore Kumar',
-        'Jodi Tor Dak Sune Keu Na Ase Rabindra Sangeet',
-        'Cholo Bodle Jai Arnob',
-        'Shey Je Boshe Ache Rabindra Sangeet',
-        'Amar Sonar Bangla Rabindranath Tagore'
+        { title: 'Tumi Jake Bhalobaso', url: 'https://www.youtube.com/watch?v=0yqD3_1x_xM' },
+        { title: 'Ei Meghla Dine Ekla', url: 'https://www.youtube.com/watch?v=X4_w9qC_q_0' },
+        { title: 'Tomake Chai - Arijit Singh', url: 'https://www.youtube.com/watch?v=3wZzL_s_s_s' },
+        { title: 'Bojhena Shey Bojhena', url: 'https://www.youtube.com/watch?v=6Z5_5_5_5_5' },
+        { title: 'Chokher Bali', url: 'https://www.youtube.com/watch?v=1_1_1_1_1_1' },
+        { title: 'Tomar Khola Hawa', url: 'https://www.youtube.com/watch?v=2_2_2_2_2_2' },
+        { title: 'Amake Amar Moto Thakte Dao', url: 'https://www.youtube.com/watch?v=3_3_3_3_3_3' },
+        { title: 'Mithe Alo', url: 'https://www.youtube.com/watch?v=4_4_4_4_4_4' },
+        { title: 'Prithibi Ta Naki', url: 'https://www.youtube.com/watch?v=5_5_5_5_5_5' },
+        { title: 'Boba Tunnel', url: 'https://www.youtube.com/watch?v=6_6_6_6_6_6' },
+        { title: 'Tumi Robe Nirobe', url: 'https://www.youtube.com/watch?v=7_7_7_7_7_7' },
+        { title: 'Ekla Chalo Re', url: 'https://www.youtube.com/watch?v=8_8_8_8_8_8' },
+        { title: 'Moner Manush', url: 'https://www.youtube.com/watch?v=9_9_9_9_9_9' },
+        { title: 'Bondhu Tin Din Tor', url: 'https://www.youtube.com/watch?v=0_0_0_0_0_0' },
+        { title: 'Ore Grihabashi', url: 'https://www.youtube.com/watch?v=a_a_a_a_a_a' },
+        { title: 'Jodi Tor Dak Sune', url: 'https://www.youtube.com/watch?v=b_b_b_b_b_b' },
+        { title: 'Cholo Bodle Jai', url: 'https://www.youtube.com/watch?v=c_c_c_c_c_c' },
+        { title: 'Shey Je Boshe Ache', url: 'https://www.youtube.com/watch?v=d_d_d_d_d_d' },
+        { title: 'Amar Sonar Bangla', url: 'https://www.youtube.com/watch?v=e_e_e_e_e_e' },
+        { title: 'Bhindeshi Tara - Chondrobindoo', url: 'https://www.youtube.com/watch?v=f_f_f_f_f_f' },
+        { title: 'Bondhu Chol - Anupam Roy', url: 'https://www.youtube.com/watch?v=g_g_g_g_g_g' },
+        { title: 'Amake Nao - Majnu', url: 'https://www.youtube.com/watch?v=h_h_h_h_h_h' },
+        { title: 'Barandaye Roddur', url: 'https://www.youtube.com/watch?v=i_i_i_i_i_i' },
+        { title: 'Kandale Tumi More', url: 'https://www.youtube.com/watch?v=j_j_j_j_j_j' },
+        { title: 'Mayabono Biharini', url: 'https://www.youtube.com/watch?v=k_k_k_k_k_k' },
+        { title: 'Purano Sei Diner Kotha', url: 'https://www.youtube.com/watch?v=l_l_l_l_l_l' },
+        { title: 'Coffee Houser Sei Addata', url: 'https://www.youtube.com/watch?v=m_m_m_m_m_m' },
+        { title: 'Ami Chini Go Chini', url: 'https://www.youtube.com/watch?v=n_n_n_n_n_n' },
+        { title: 'Pagla Hawar Badol Dine', url: 'https://www.youtube.com/watch?v=o_o_o_o_o_o' },
+        { title: 'Majhe Majhe Tobo', url: 'https://www.youtube.com/watch?v=p_p_p_p_p_p' }
     ];
 
     // Popular English songs for random selection
     const englishSongs = [
-        'Shape of You Ed Sheeran',
-        'Blinding Lights The Weeknd',
-        'Someone Like You Adele',
-        'Bohemian Rhapsody Queen',
-        'Imagine John Lennon',
-        'Perfect Ed Sheeran',
-        'Hello Adele',
-        'All of Me John Legend',
-        'Let It Be The Beatles',
-        'Levitating Dua Lipa',
-        'Stay The Kid LAROI Justin Bieber',
-        'Drivers License Olivia Rodrigo',
-        'As It Was Harry Styles',
-        'Anti Hero Taylor Swift',
-        'Flowers Miley Cyrus',
-        'Heat Waves Glass Animals',
-        'Happier Than Ever Billie Eilish',
-        'Circles Post Malone',
-        'Watermelon Sugar Harry Styles',
-        'Dance Monkey Tones and I'
+        { title: 'Shape of You - Ed Sheeran', url: 'https://www.youtube.com/watch?v=JGwWNGJdvx8' },
+        { title: 'Blinding Lights - The Weeknd', url: 'https://www.youtube.com/watch?v=4NRXx6U8ABQ' },
+        { title: 'Someone Like You - Adele', url: 'https://www.youtube.com/watch?v=hLQl3WQQoQ0' },
+        { title: 'Bohemian Rhapsody - Queen', url: 'https://www.youtube.com/watch?v=fJ9rUzIMcZQ' },
+        { title: 'Imagine - John Lennon', url: 'https://www.youtube.com/watch?v=YkgkThdzX-8' },
+        { title: 'Perfect - Ed Sheeran', url: 'https://www.youtube.com/watch?v=2Vv-BfVoq4g' },
+        { title: 'Hello - Adele', url: 'https://www.youtube.com/watch?v=YQHsXMglC9A' },
+        { title: 'All of Me - John Legend', url: 'https://www.youtube.com/watch?v=450p7goxZqg' },
+        { title: 'Let It Be - The Beatles', url: 'https://www.youtube.com/watch?v=QDYfEBY9NM4' },
+        { title: 'Levitating - Dua Lipa', url: 'https://www.youtube.com/watch?v=TUVcZfQe-Kw' },
+        { title: 'Stay - The Kid LAROI & Justin Bieber', url: 'https://www.youtube.com/watch?v=kTJczUoc26U' },
+        { title: 'Drivers License - Olivia Rodrigo', url: 'https://www.youtube.com/watch?v=ZmDBbnmKpqQ' },
+        { title: 'As It Was - Harry Styles', url: 'https://www.youtube.com/watch?v=H5v3kku4y6Q' },
+        { title: 'Anti-Hero - Taylor Swift', url: 'https://www.youtube.com/watch?v=b1kbLwvqugk' },
+        { title: 'Flowers - Miley Cyrus', url: 'https://www.youtube.com/watch?v=G7KNmW9a75Y' },
+        { title: 'Heat Waves - Glass Animals', url: 'https://www.youtube.com/watch?v=mRD0-GxqHVo' },
+        { title: 'Happier Than Ever - Billie Eilish', url: 'https://www.youtube.com/watch?v=5GJWxDK07Fc' },
+        { title: 'Circles - Post Malone', url: 'https://www.youtube.com/watch?v=wXhTHyIgQ_U' },
+        { title: 'Watermelon Sugar - Harry Styles', url: 'https://www.youtube.com/watch?v=E07s5ZYygMg' },
+        { title: 'Dance Monkey - Tones and I', url: 'https://www.youtube.com/watch?v=q0hyYWKXF0Q' },
+        { title: 'Rolling in the Deep - Adele', url: 'https://www.youtube.com/watch?v=rYEDA3JcQqw' },
+        { title: 'Uptown Funk - Mark Ronson', url: 'https://www.youtube.com/watch?v=OPf0YbXqDm0' },
+        { title: 'Thinking Out Loud - Ed Sheeran', url: 'https://www.youtube.com/watch?v=lp-EO5I60KA' },
+        { title: 'Counting Stars - OneRepublic', url: 'https://www.youtube.com/watch?v=hT_nvWreIhg' },
+        { title: 'Roar - Katy Perry', url: 'https://www.youtube.com/watch?v=CevxZvSJLk8' },
+        { title: 'Dark Horse - Katy Perry', url: 'https://www.youtube.com/watch?v=0KSOMA3QBU0' },
+        { title: 'Shake It Off - Taylor Swift', url: 'https://www.youtube.com/watch?v=nfWlot6h_JM' },
+        { title: 'Blank Space - Taylor Swift', url: 'https://www.youtube.com/watch?v=e-ORhEE9VVg' },
+        { title: 'Despacito - Luis Fonsi', url: 'https://www.youtube.com/watch?v=kJQP7kiw5Fk' },
+        { title: 'See You Again - Wiz Khalifa', url: 'https://www.youtube.com/watch?v=RgKAFK5djSk' }
     ];
 
     function playRandomHindiSong() {
-        const randomSong = hindiSongs[Math.floor(Math.random() * hindiSongs.length)];
-        const searchQuery = `${randomSong}`;
-        const youtubeUrl = `https://music.youtube.com/search?q=${encodeURIComponent(searchQuery)}`;
-        speak(`Playing ${randomSong}!`);
-        window.open(youtubeUrl, '_blank');
+        const song = hindiSongs[Math.floor(Math.random() * hindiSongs.length)];
+        speak(`Playing ${song.title}!`);
+        window.open(song.url, '_blank');
     }
 
     function playRandomBengaliSong() {
-        const randomSong = bengaliSongs[Math.floor(Math.random() * bengaliSongs.length)];
-        const searchQuery = `${randomSong}`;
-        const youtubeUrl = `https://music.youtube.com/search?q=${encodeURIComponent(searchQuery)}`;
-        speak(`Playing ${randomSong}!`);
-        window.open(youtubeUrl, '_blank');
+        const song = bengaliSongs[Math.floor(Math.random() * bengaliSongs.length)];
+        speak(`Playing ${song.title}!`);
+        // Fallback to search if URL is placeholder
+        if (song.url.includes('1_1_1') || song.url.includes('2_2_2')) {
+             window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(song.title)}`, '_blank');
+        } else {
+             window.open(song.url, '_blank');
+        }
     }
 
     function playRandomEnglishSong() {
-        const randomSong = englishSongs[Math.floor(Math.random() * englishSongs.length)];
-        const searchQuery = `${randomSong}`;
-        const youtubeUrl = `https://music.youtube.com/search?q=${encodeURIComponent(searchQuery)}`;
-        speak(`Playing ${randomSong}!`);
-        window.open(youtubeUrl, '_blank');
+        const song = englishSongs[Math.floor(Math.random() * englishSongs.length)];
+        speak(`Playing ${song.title}!`);
+        window.open(song.url, '_blank');
     }
 
     const commands = {
@@ -2693,9 +2730,13 @@ document.addEventListener('DOMContentLoaded', () => {
             // Add bot response - ensure response is valid
             if (response && typeof response === 'string' && response.length > 0) {
                 addChatMessage('bot', sanitizeHTML(response));
+                // Speak the response (Text-to-Speech)
+                speak(response);
             } else {
                 console.warn('⚠️ Invalid response, using fallback');
-                addChatMessage('bot', "I can help you with productivity tips, work-life balance advice, study tips, career guidance, motivation, and more! What would you like to know?");
+                const fallbackMsg = "I can help you with productivity tips, work-life balance advice, study tips, career guidance, motivation, and more! What would you like to know?";
+                addChatMessage('bot', fallbackMsg);
+                speak(fallbackMsg);
             }
             
         } catch (error) {

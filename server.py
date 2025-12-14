@@ -342,11 +342,14 @@ def _search_web(query: str) -> str | None:
                 'User-Agent': 'NextorAI/1.0 (Educational Project; Python/requests)'
             }
             
+            # Step 1: Try direct lookup first
             wiki_response = requests.get(wiki_url, params=wiki_params, headers=headers, timeout=8)
             wiki_response.raise_for_status()
             wiki_data = wiki_response.json()
             
             pages = wiki_data.get('query', {}).get('pages', {})
+            found_direct = False
+            
             for page_id, page in pages.items():
                 if page_id != '-1' and 'extract' in page:
                     extract = page['extract'].strip()
@@ -361,6 +364,43 @@ def _search_web(query: str) -> str | None:
                             answer = answer[:497] + "..."
                         print(f"✅ Found Wikipedia answer for: {wiki_title}")
                         return answer
+            
+            # Step 2: If direct lookup failed, try OpenSearch to find better title
+            print(f"⚠️ Direct Wikipedia lookup failed for '{wiki_title}', trying search...")
+            search_params = {
+                'action': 'opensearch',
+                'search': search_term,
+                'limit': 1,
+                'namespace': 0,
+                'format': 'json'
+            }
+            
+            search_resp = requests.get(wiki_url, params=search_params, headers=headers, timeout=5)
+            search_data = search_resp.json()
+            
+            if search_data and len(search_data) > 1 and search_data[1]:
+                best_title = search_data[1][0]
+                print(f"🔍 Found better Wikipedia title: '{best_title}'")
+                
+                # Try getting extract for the found title
+                wiki_params['titles'] = best_title
+                wiki_response = requests.get(wiki_url, params=wiki_params, headers=headers, timeout=8)
+                wiki_data = wiki_response.json()
+                
+                pages = wiki_data.get('query', {}).get('pages', {})
+                for page_id, page in pages.items():
+                    if page_id != '-1' and 'extract' in page:
+                        extract = page['extract'].strip()
+                        if extract and len(extract) > 50:
+                            sentences = extract.split('. ')[:3]
+                            answer = '. '.join(sentences)
+                            if not answer.endswith('.'):
+                                answer += '.'
+                            if len(answer) > 500:
+                                answer = answer[:497] + "..."
+                            print(f"✅ Found Wikipedia answer for: {best_title}")
+                            return answer
+
             print(f"⚠️ Wikipedia had no article for: {wiki_title}")
         except Exception as wiki_error:
             print(f"⚠️ Wikipedia search failed: {wiki_error}")
@@ -438,13 +478,17 @@ def _search_web(query: str) -> str | None:
                 'div.kno-rdesc span',   # Knowledge panel description
                 'div.V3FYCf',           # Answer box
                 'div.ayRjaf',           # Direct answer
+                'div.Z0LcW',            # Direct answer (e.g. time, conversion)
+                'div.LGOjhe',           # Info box
+                'div.VwiC3b',           # Standard search result snippet (fallback)
+                'div.BNeawe',           # Mobile result snippet
             ]
             
             for selector in selectors:
                 elements = soup.select(selector)
                 for element in elements:
                     text = element.get_text(strip=True)
-                    if text and len(text) > 50:
+                    if text and len(text) > 30:  # Lowered threshold slightly
                         answer = text
                         print(f"✅ Found Google answer with selector: {selector}")
                         break
@@ -549,6 +593,12 @@ def _get_builtin_knowledge(query: str) -> str | None:
         'satya nadella': "Satya Nadella is the CEO of Microsoft since 2014. Under his leadership, Microsoft has focused on cloud computing (Azure), AI integration, and open-source technologies, transforming the company's culture and business strategy.",
         'sundar pichai': "Sundar Pichai is the CEO of Alphabet Inc. and its subsidiary Google. He joined Google in 2004 and has overseen the development of products like Chrome, Chrome OS, and Google Drive before becoming CEO.",
         
+        # Sports
+        'sunil chhetri': "Sunil Chhetri is an Indian professional footballer who plays as a forward and captains both the Indian Super League club Bengaluru and the India national team. He is widely regarded as the greatest Indian footballer of all time and is among the highest international goalscorers in history.",
+        'greatest footballer in india': "Sunil Chhetri is widely regarded as the greatest Indian footballer of all time. He is the captain of the Indian national team and one of the highest international goalscorers in history, alongside legends like Cristiano Ronaldo and Lionel Messi.",
+        'best footballer in india': "Sunil Chhetri is considered the best footballer in India. He has led the national team for over a decade and holds the record for the most goals scored by an Indian in international football.",
+        'indian football captain': "The captain of the Indian national football team is Sunil Chhetri. He is a legendary figure in Indian football and plays as a forward.",
+
         # Technologies
         'next js': "Next.js is a powerful React framework for building production-ready web applications. It provides features like server-side rendering, static site generation, API routes, and automatic code splitting. Created by Vercel, it's popular for building fast, SEO-friendly websites.",
         'nextjs': "Next.js is a powerful React framework for building production-ready web applications. It provides features like server-side rendering, static site generation, API routes, and automatic code splitting. Created by Vercel, it's popular for building fast, SEO-friendly websites.",

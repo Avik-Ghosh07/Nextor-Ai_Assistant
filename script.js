@@ -1423,7 +1423,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Website and app URLs with mobile deep links
     const websiteMap = {
         youtube: 'https://www.youtube.com',
-        whatsapp: 'https://web.whatsapp.com', // Opens WhatsApp Web which redirects to app on mobile
+        whatsapp: 'whatsapp://', // Opens WhatsApp desktop app or mobile app
         instagram: 'https://www.instagram.com',
         facebook: 'https://www.facebook.com',
         google: 'https://www.google.com',
@@ -1524,127 +1524,122 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Popular Hindi songs for random selection
     const hindiSongs = [
-        { title: 'Tum Hi Ho - Aashiqui 2', url: 'https://www.youtube.com/watch?v=IJq0yyWug1k' },
-        { title: 'Channa Mereya - Ae Dil Hai Mushkil', url: 'https://www.youtube.com/watch?v=284Ov7ysmfA' },
-        { title: 'Kesariya - Brahmastra', url: 'https://www.youtube.com/watch?v=BddP6PYo2gs' },
-        { title: 'Tera Ban Jaunga - Kabir Singh', url: 'https://www.youtube.com/watch?v=3X9wEwulYhk' },
-        { title: 'Raataan Lambiyan - Shershaah', url: 'https://www.youtube.com/watch?v=gvyUuxSY41Q' },
-        { title: 'Mann Meri Jaan - King', url: 'https://www.youtube.com/watch?v=VuG7ge_8I2Y' },
-        { title: 'Apna Bana Le - Bhediya', url: 'https://www.youtube.com/watch?v=u1k65f6d5I0' },
-        { title: 'Tum Se Hi - Jab We Met', url: 'https://www.youtube.com/watch?v=mt9xg0mmt28' },
-        { title: 'Tere Hawaale - Laal Singh Chaddha', url: 'https://www.youtube.com/watch?v=KUpwupYj_tY' },
-        { title: 'Ae Watan - Raazi', url: 'https://www.youtube.com/watch?v=BKx_B15Uqxw' },
-        { title: 'Kalank Title Track', url: 'https://www.youtube.com/watch?v=Grr0FlC8SQA' },
-        { title: 'Tera Yaar Hoon Main', url: 'https://www.youtube.com/watch?v=EaxKnltIe7g' },
-        { title: 'Dil Diyan Gallan', url: 'https://www.youtube.com/watch?v=SAcpESN_Fk4' },
-        { title: 'Gerua - Dilwale', url: 'https://www.youtube.com/watch?v=AEIVhBS6baE' },
-        { title: 'Janam Janam - Dilwale', url: 'https://www.youtube.com/watch?v=Z9Q78lvz68k' },
-        { title: 'Tum Hi Aana - Marjaavaan', url: 'https://www.youtube.com/watch?v=tLqtnGLfm4Q' },
-        { title: 'Mere Rashke Qamar', url: 'https://www.youtube.com/watch?v=UGkLd1pxHQ0' },
-        { title: 'Tera Hone Laga Hoon', url: 'https://www.youtube.com/watch?v=r6tQIZa8gIA' },
-        { title: 'Ve Maahi - Kesari', url: 'https://www.youtube.com/watch?v=j6muwUGsnKs' },
-        { title: 'Pal Pal Dil Ke Paas', url: 'https://www.youtube.com/watch?v=AM8D9e9qE14' },
-        { title: 'Bekhayali - Kabir Singh', url: 'https://www.youtube.com/watch?v=VOLKJJvfAbg' },
-        { title: 'Ghungroo - War', url: 'https://www.youtube.com/watch?v=qFkNATtc3mc' },
-        { title: 'Tujhe Kitna Chahne Lage', url: 'https://www.youtube.com/watch?v=2lAe1cqCOXo' },
-        { title: 'Dilbar - Satyameva Jayate', url: 'https://www.youtube.com/watch?v=n2086jaQ9X0' },
-        { title: 'Hawayein - Jab Harry Met Sejal', url: 'https://www.youtube.com/watch?v=cYOB941gyXI' },
-        { title: 'Nashe Si Chadh Gayi', url: 'https://www.youtube.com/watch?v=Wd2B8OAotU8' },
-        { title: 'The Breakup Song', url: 'https://www.youtube.com/watch?v=kd5KqlmcHNo' },
-        { title: 'Kala Chashma', url: 'https://www.youtube.com/watch?v=k4yXQkG2s1E' },
-        { title: 'Kar Gayi Chull', url: 'https://www.youtube.com/watch?v=NTHz9ephYTw' },
-        { title: 'Galliyan - Ek Villain', url: 'https://www.youtube.com/watch?v=FxAG_11PzCk' }
+        { title: 'Tum Hi Ho - Aashiqui 2', search: 'Tum Hi Ho Aashiqui 2 official' },
+        { title: 'Channa Mereya - Ae Dil Hai Mushkil', search: 'Channa Mereya Ae Dil Hai Mushkil official' },
+        { title: 'Kesariya - Brahmastra', search: 'Kesariya Brahmastra official' },
+        { title: 'Tera Ban Jaunga - Kabir Singh', search: 'Tera Ban Jaunga Kabir Singh official' },
+        { title: 'Raataan Lambiyan - Shershaah', search: 'Raataan Lambiyan Shershaah official' },
+        { title: 'Mann Meri Jaan - King', search: 'Mann Meri Jaan King official' },
+        { title: 'Apna Bana Le - Bhediya', search: 'Apna Bana Le Bhediya official' },
+        { title: 'Tum Se Hi - Jab We Met', search: 'Tum Se Hi Jab We Met official' },
+        { title: 'Tere Hawaale - Laal Singh Chaddha', search: 'Tere Hawaale Laal Singh Chaddha official' },
+        { title: 'Ae Watan - Raazi', search: 'Ae Watan Raazi official' },
+        { title: 'Kalank Title Track', search: 'Kalank Title Track official' },
+        { title: 'Tera Yaar Hoon Main', search: 'Tera Yaar Hoon Main Sonu Ke Titu Ki Sweety official' },
+        { title: 'Dil Diyan Gallan', search: 'Dil Diyan Gallan Tiger Zinda Hai official' },
+        { title: 'Gerua - Dilwale', search: 'Gerua Dilwale official' },
+        { title: 'Janam Janam - Dilwale', search: 'Janam Janam Dilwale official' },
+        { title: 'Tum Hi Aana - Marjaavaan', search: 'Tum Hi Aana Marjaavaan official' },
+        { title: 'Mere Rashke Qamar', search: 'Mere Rashke Qamar Baadshaho official' },
+        { title: 'Tera Hone Laga Hoon', search: 'Tera Hone Laga Hoon Ajab Prem official' },
+        { title: 'Ve Maahi - Kesari', search: 'Ve Maahi Kesari official' },
+        { title: 'Pal Pal Dil Ke Paas', search: 'Pal Pal Dil Ke Paas Kishore Kumar' },
+        { title: 'Bekhayali - Kabir Singh', search: 'Bekhayali Kabir Singh official' },
+        { title: 'Ghungroo - War', search: 'Ghungroo War official' },
+        { title: 'Tujhe Kitna Chahne Lage', search: 'Tujhe Kitna Chahne Lage Kabir Singh official' },
+        { title: 'Dilbar - Satyameva Jayate', search: 'Dilbar Satyameva Jayate official' },
+        { title: 'Hawayein - Jab Harry Met Sejal', search: 'Hawayein Jab Harry Met Sejal official' },
+        { title: 'Nashe Si Chadh Gayi', search: 'Nashe Si Chadh Gayi Befikre official' },
+        { title: 'The Breakup Song', search: 'The Breakup Song Ae Dil Hai Mushkil official' },
+        { title: 'Kala Chashma', search: 'Kala Chashma Baar Baar Dekho official' },
+        { title: 'Kar Gayi Chull', search: 'Kar Gayi Chull Kapoor and Sons official' },
+        { title: 'Galliyan - Ek Villain', search: 'Galliyan Ek Villain official' }
     ];
 
     // Popular Bengali songs for random selection
     const bengaliSongs = [
-        { title: 'Tumi Jake Bhalobaso', url: 'https://www.youtube.com/watch?v=0yqD3_1x_xM' },
-        { title: 'Ei Meghla Dine Ekla', url: 'https://www.youtube.com/watch?v=X4_w9qC_q_0' },
-        { title: 'Tomake Chai - Arijit Singh', url: 'https://www.youtube.com/watch?v=3wZzL_s_s_s' },
-        { title: 'Bojhena Shey Bojhena', url: 'https://www.youtube.com/watch?v=6Z5_5_5_5_5' },
-        { title: 'Chokher Bali', url: 'https://www.youtube.com/watch?v=1_1_1_1_1_1' },
-        { title: 'Tomar Khola Hawa', url: 'https://www.youtube.com/watch?v=2_2_2_2_2_2' },
-        { title: 'Amake Amar Moto Thakte Dao', url: 'https://www.youtube.com/watch?v=3_3_3_3_3_3' },
-        { title: 'Mithe Alo', url: 'https://www.youtube.com/watch?v=4_4_4_4_4_4' },
-        { title: 'Prithibi Ta Naki', url: 'https://www.youtube.com/watch?v=5_5_5_5_5_5' },
-        { title: 'Boba Tunnel', url: 'https://www.youtube.com/watch?v=6_6_6_6_6_6' },
-        { title: 'Tumi Robe Nirobe', url: 'https://www.youtube.com/watch?v=7_7_7_7_7_7' },
-        { title: 'Ekla Chalo Re', url: 'https://www.youtube.com/watch?v=8_8_8_8_8_8' },
-        { title: 'Moner Manush', url: 'https://www.youtube.com/watch?v=9_9_9_9_9_9' },
-        { title: 'Bondhu Tin Din Tor', url: 'https://www.youtube.com/watch?v=0_0_0_0_0_0' },
-        { title: 'Ore Grihabashi', url: 'https://www.youtube.com/watch?v=a_a_a_a_a_a' },
-        { title: 'Jodi Tor Dak Sune', url: 'https://www.youtube.com/watch?v=b_b_b_b_b_b' },
-        { title: 'Cholo Bodle Jai', url: 'https://www.youtube.com/watch?v=c_c_c_c_c_c' },
-        { title: 'Shey Je Boshe Ache', url: 'https://www.youtube.com/watch?v=d_d_d_d_d_d' },
-        { title: 'Amar Sonar Bangla', url: 'https://www.youtube.com/watch?v=e_e_e_e_e_e' },
-        { title: 'Bhindeshi Tara - Chondrobindoo', url: 'https://www.youtube.com/watch?v=f_f_f_f_f_f' },
-        { title: 'Bondhu Chol - Anupam Roy', url: 'https://www.youtube.com/watch?v=g_g_g_g_g_g' },
-        { title: 'Amake Nao - Majnu', url: 'https://www.youtube.com/watch?v=h_h_h_h_h_h' },
-        { title: 'Barandaye Roddur', url: 'https://www.youtube.com/watch?v=i_i_i_i_i_i' },
-        { title: 'Kandale Tumi More', url: 'https://www.youtube.com/watch?v=j_j_j_j_j_j' },
-        { title: 'Mayabono Biharini', url: 'https://www.youtube.com/watch?v=k_k_k_k_k_k' },
-        { title: 'Purano Sei Diner Kotha', url: 'https://www.youtube.com/watch?v=l_l_l_l_l_l' },
-        { title: 'Coffee Houser Sei Addata', url: 'https://www.youtube.com/watch?v=m_m_m_m_m_m' },
-        { title: 'Ami Chini Go Chini', url: 'https://www.youtube.com/watch?v=n_n_n_n_n_n' },
-        { title: 'Pagla Hawar Badol Dine', url: 'https://www.youtube.com/watch?v=o_o_o_o_o_o' },
-        { title: 'Majhe Majhe Tobo', url: 'https://www.youtube.com/watch?v=p_p_p_p_p_p' }
+        { title: 'Tumi Jake Bhalobaso - Kishore Kumar', search: 'Tumi Jake Bhalobaso Kishore Kumar' },
+        { title: 'Ei Meghla Dine Ekla - Hemanta Mukherjee', search: 'Ei Meghla Dine Ekla Hemanta Mukherjee' },
+        { title: 'Tomake Chai - Arijit Singh', search: 'Tomake Chai Arijit Singh Bengali' },
+        { title: 'Bojhena Shey Bojhena - Arijit Singh', search: 'Bojhena Shey Bojhena Arijit Singh' },
+        { title: 'Ranjha - Bengali', search: 'Ranjha Bengali song' },
+        { title: 'Tomar Khola Hawa - Fossils', search: 'Tomar Khola Hawa Fossils' },
+        { title: 'Amake Amar Moto Thakte Dao - Anupam Roy', search: 'Amake Amar Moto Thakte Dao Anupam Roy' },
+        { title: 'Mithe Alo - Shironamhin', search: 'Mithe Alo Shironamhin' },
+        { title: 'Prithibi Ta Naki - Anupam Roy', search: 'Prithibi Ta Naki Anupam Roy' },
+        { title: 'Boba Tunnel - Fossils', search: 'Boba Tunnel Fossils' },
+        { title: 'Tumi Robe Nirobe - Rabindra Sangeet', search: 'Tumi Robe Nirobe Rabindra Sangeet' },
+        { title: 'Ekla Chalo Re - Rabindra Sangeet', search: 'Ekla Chalo Re Amitabh Bachchan' },
+        { title: 'Amar Ache Jol - Nachiketa', search: 'Amar Ache Jol Nachiketa' },
+        { title: 'Tomay Hrid Majhare - KK', search: 'Tomay Hrid Majhare KK Bengali' },
+        { title: 'Ore Grihabashi - Rabindra Sangeet', search: 'Ore Grihabashi Rabindra Sangeet' },
+        { title: 'Jodi Tor Dak Sune - Shreya Ghoshal', search: 'Jodi Tor Dak Sune Shreya Ghoshal' },
+        { title: 'Cholo Bodle Jai - Arnob', search: 'Cholo Bodle Jai Arnob' },
+        { title: 'Keno Je Toke - Minar Rahman', search: 'Keno Je Toke Minar Rahman' },
+        { title: 'Amar Sonar Bangla', search: 'Amar Sonar Bangla Rabindra Sangeet' },
+        { title: 'Bhindeshi Tara - Chandrabindoo', search: 'Bhindeshi Tara Chandrabindoo' },
+        { title: 'Tomar Amar - Praktan', search: 'Tomar Amar Praktan' },
+        { title: 'Phire Faqir - Bhoomi', search: 'Phire Faqir Bhoomi' },
+        { title: 'Hoyto Tomari Jonno - Hemlock Society', search: 'Hoyto Tomari Jonno Hemlock Society' },
+        { title: 'Ki Kore Toke Bolbo - Kishore Kumar', search: 'Ki Kore Toke Bolbo Kishore Kumar' },
+        { title: 'Mayabono Biharini - Shreya Ghoshal', search: 'Mayabono Biharini Shreya Ghoshal' },
+        { title: 'Purano Sei Diner Kotha', search: 'Purano Sei Diner Kotha Bengali' },
+        { title: 'Coffee Houser Sei Addata - Manna Dey', search: 'Coffee Houser Sei Addata Manna Dey' },
+        { title: 'Ami Chini Go Chini - Shreya Ghoshal', search: 'Ami Chini Go Chini Shreya Ghoshal' },
+        { title: 'Tumi Ja Bole - Gangster', search: 'Tumi Ja Bole Gangster Bengali' },
+        { title: 'Ei Poth Jodi Na Sesh Hoy - Warfaze', search: 'Ei Poth Jodi Na Sesh Hoy Warfaze' }
     ];
 
     // Popular English songs for random selection
     const englishSongs = [
-        { title: 'Shape of You - Ed Sheeran', url: 'https://www.youtube.com/watch?v=JGwWNGJdvx8' },
-        { title: 'Blinding Lights - The Weeknd', url: 'https://www.youtube.com/watch?v=4NRXx6U8ABQ' },
-        { title: 'Someone Like You - Adele', url: 'https://www.youtube.com/watch?v=hLQl3WQQoQ0' },
-        { title: 'Bohemian Rhapsody - Queen', url: 'https://www.youtube.com/watch?v=fJ9rUzIMcZQ' },
-        { title: 'Imagine - John Lennon', url: 'https://www.youtube.com/watch?v=YkgkThdzX-8' },
-        { title: 'Perfect - Ed Sheeran', url: 'https://www.youtube.com/watch?v=2Vv-BfVoq4g' },
-        { title: 'Hello - Adele', url: 'https://www.youtube.com/watch?v=YQHsXMglC9A' },
-        { title: 'All of Me - John Legend', url: 'https://www.youtube.com/watch?v=450p7goxZqg' },
-        { title: 'Let It Be - The Beatles', url: 'https://www.youtube.com/watch?v=QDYfEBY9NM4' },
-        { title: 'Levitating - Dua Lipa', url: 'https://www.youtube.com/watch?v=TUVcZfQe-Kw' },
-        { title: 'Stay - The Kid LAROI & Justin Bieber', url: 'https://www.youtube.com/watch?v=kTJczUoc26U' },
-        { title: 'Drivers License - Olivia Rodrigo', url: 'https://www.youtube.com/watch?v=ZmDBbnmKpqQ' },
-        { title: 'As It Was - Harry Styles', url: 'https://www.youtube.com/watch?v=H5v3kku4y6Q' },
-        { title: 'Anti-Hero - Taylor Swift', url: 'https://www.youtube.com/watch?v=b1kbLwvqugk' },
-        { title: 'Flowers - Miley Cyrus', url: 'https://www.youtube.com/watch?v=G7KNmW9a75Y' },
-        { title: 'Heat Waves - Glass Animals', url: 'https://www.youtube.com/watch?v=mRD0-GxqHVo' },
-        { title: 'Happier Than Ever - Billie Eilish', url: 'https://www.youtube.com/watch?v=5GJWxDK07Fc' },
-        { title: 'Circles - Post Malone', url: 'https://www.youtube.com/watch?v=wXhTHyIgQ_U' },
-        { title: 'Watermelon Sugar - Harry Styles', url: 'https://www.youtube.com/watch?v=E07s5ZYygMg' },
-        { title: 'Dance Monkey - Tones and I', url: 'https://www.youtube.com/watch?v=q0hyYWKXF0Q' },
-        { title: 'Rolling in the Deep - Adele', url: 'https://www.youtube.com/watch?v=rYEDA3JcQqw' },
-        { title: 'Uptown Funk - Mark Ronson', url: 'https://www.youtube.com/watch?v=OPf0YbXqDm0' },
-        { title: 'Thinking Out Loud - Ed Sheeran', url: 'https://www.youtube.com/watch?v=lp-EO5I60KA' },
-        { title: 'Counting Stars - OneRepublic', url: 'https://www.youtube.com/watch?v=hT_nvWreIhg' },
-        { title: 'Roar - Katy Perry', url: 'https://www.youtube.com/watch?v=CevxZvSJLk8' },
-        { title: 'Dark Horse - Katy Perry', url: 'https://www.youtube.com/watch?v=0KSOMA3QBU0' },
-        { title: 'Shake It Off - Taylor Swift', url: 'https://www.youtube.com/watch?v=nfWlot6h_JM' },
-        { title: 'Blank Space - Taylor Swift', url: 'https://www.youtube.com/watch?v=e-ORhEE9VVg' },
-        { title: 'Despacito - Luis Fonsi', url: 'https://www.youtube.com/watch?v=kJQP7kiw5Fk' },
-        { title: 'See You Again - Wiz Khalifa', url: 'https://www.youtube.com/watch?v=RgKAFK5djSk' }
+        { title: 'Shape of You - Ed Sheeran', search: 'Shape of You Ed Sheeran official' },
+        { title: 'Blinding Lights - The Weeknd', search: 'Blinding Lights The Weeknd official' },
+        { title: 'Someone Like You - Adele', search: 'Someone Like You Adele official' },
+        { title: 'Bohemian Rhapsody - Queen', search: 'Bohemian Rhapsody Queen official' },
+        { title: 'Imagine - John Lennon', search: 'Imagine John Lennon official' },
+        { title: 'Perfect - Ed Sheeran', search: 'Perfect Ed Sheeran official' },
+        { title: 'Hello - Adele', search: 'Hello Adele official' },
+        { title: 'All of Me - John Legend', search: 'All of Me John Legend official' },
+        { title: 'Let It Be - The Beatles', search: 'Let It Be The Beatles official' },
+        { title: 'Levitating - Dua Lipa', search: 'Levitating Dua Lipa official' },
+        { title: 'Stay - The Kid LAROI & Justin Bieber', search: 'Stay The Kid LAROI Justin Bieber official' },
+        { title: 'Drivers License - Olivia Rodrigo', search: 'Drivers License Olivia Rodrigo official' },
+        { title: 'As It Was - Harry Styles', search: 'As It Was Harry Styles official' },
+        { title: 'Anti-Hero - Taylor Swift', search: 'Anti-Hero Taylor Swift official' },
+        { title: 'Flowers - Miley Cyrus', search: 'Flowers Miley Cyrus official' },
+        { title: 'Heat Waves - Glass Animals', search: 'Heat Waves Glass Animals official' },
+        { title: 'Happier Than Ever - Billie Eilish', search: 'Happier Than Ever Billie Eilish official' },
+        { title: 'Circles - Post Malone', search: 'Circles Post Malone official' },
+        { title: 'Watermelon Sugar - Harry Styles', search: 'Watermelon Sugar Harry Styles official' },
+        { title: 'Dance Monkey - Tones and I', search: 'Dance Monkey Tones and I official' },
+        { title: 'Rolling in the Deep - Adele', search: 'Rolling in the Deep Adele official' },
+        { title: 'Uptown Funk - Bruno Mars', search: 'Uptown Funk Mark Ronson Bruno Mars official' },
+        { title: 'Thinking Out Loud - Ed Sheeran', search: 'Thinking Out Loud Ed Sheeran official' },
+        { title: 'Counting Stars - OneRepublic', search: 'Counting Stars OneRepublic official' },
+        { title: 'Roar - Katy Perry', search: 'Roar Katy Perry official' },
+        { title: 'Dark Horse - Katy Perry', search: 'Dark Horse Katy Perry official' },
+        { title: 'Shake It Off - Taylor Swift', search: 'Shake It Off Taylor Swift official' },
+        { title: 'Blank Space - Taylor Swift', search: 'Blank Space Taylor Swift official' },
+        { title: 'Despacito - Luis Fonsi', search: 'Despacito Luis Fonsi Daddy Yankee official' },
+        { title: 'See You Again - Wiz Khalifa', search: 'See You Again Wiz Khalifa Charlie Puth official' }
     ];
 
     function playRandomHindiSong() {
         const song = hindiSongs[Math.floor(Math.random() * hindiSongs.length)];
         speak(`Playing ${song.title}!`);
-        window.open(song.url, '_blank');
+        window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(song.search)}`, '_blank');
     }
 
     function playRandomBengaliSong() {
         const song = bengaliSongs[Math.floor(Math.random() * bengaliSongs.length)];
         speak(`Playing ${song.title}!`);
-        // Fallback to search if URL is placeholder
-        if (song.url.includes('1_1_1') || song.url.includes('2_2_2')) {
-             window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(song.title)}`, '_blank');
-        } else {
-             window.open(song.url, '_blank');
-        }
+        window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(song.search)}`, '_blank');
     }
 
     function playRandomEnglishSong() {
         const song = englishSongs[Math.floor(Math.random() * englishSongs.length)];
         speak(`Playing ${song.title}!`);
-        window.open(song.url, '_blank');
+        window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(song.search)}`, '_blank');
     }
 
     const commands = {
@@ -2115,6 +2110,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     .trim();
             } else if (command.startsWith('what is') || command.startsWith('what\'s') || command.startsWith('whats')) {
                 // Only treat as math if it contains numbers AND math keywords
+                // Skip if it starts with question words like where, when, who, why
                 const afterWhatIs = command.replace(/^(what is|what's|whats)\s*/i, '').trim();
                 const hasMathKeywords = /\b(plus|minus|times|multiplied|divided|divide|over|into)\b/i.test(afterWhatIs);
                 const hasNumbers = /\d/.test(afterWhatIs);
@@ -2125,18 +2121,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     mathExpression = afterWhatIs;
                 }
             } else {
-                // Check if command is a direct math expression (e.g., "5+7", "3*2", "12 divided by 4")
-                const testMath = command
-                    .replace(/plus/gi, '+')
-                    .replace(/minus/gi, '-')
-                    .replace(/times/gi, '*')
-                    .replace(/multiplied\s*by/gi, '*')
-                    .replace(/divided\s*by/gi, '/')
-                    .replace(/divide\s*by/gi, '/')
-                    .replace(/\s+/g, '');
-                
-                if (/^[\d+\-*/.()]+$/.test(testMath) && /[+\-*\/]/.test(testMath)) {
-                    mathExpression = command;
+                // Skip direct math evaluation for questions starting with where, when, who, why, how
+                if (!/^(where|when|who|why|how|tell me|can you|should|could|would|will)\b/i.test(command)) {
+                    // Check if command is a direct math expression (e.g., "5+7", "3*2", "12 divided by 4")
+                    const testMath = command
+                        .replace(/plus/gi, '+')
+                        .replace(/minus/gi, '-')
+                        .replace(/times/gi, '*')
+                        .replace(/multiplied\s*by/gi, '*')
+                        .replace(/divided\s*by/gi, '/')
+                        .replace(/divide\s*by/gi, '/')
+                        .replace(/\s+/g, '');
+                    
+                    if (/^[\d+\-*/.()]+$/.test(testMath) && /[+\-*\/]/.test(testMath)) {
+                        mathExpression = command;
+                    }
                 }
             }
             

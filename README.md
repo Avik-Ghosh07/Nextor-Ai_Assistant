@@ -44,14 +44,10 @@ A production-ready AI assistant combining voice recognition, natural language pr
 git clone https://github.com/Avik-Ghosh07/Nextor-Ai_Assistant.git
 cd Nextor-Ai_Assistant
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
 # Install dependencies
 pip install -r requirements.txt
 
-# Run server
+# Run server (with Waitress WSGI)
 python server.py
 ```
 

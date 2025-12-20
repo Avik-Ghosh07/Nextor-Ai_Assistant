@@ -29,15 +29,23 @@ load_dotenv()
 
 # Configure logging with UTF-8 encoding for emoji support
 import sys
+
+# Create logs directory if it doesn't exist
+os.makedirs('logs', exist_ok=True)
+
+# Configure stream handler for console output
 stream_handler = logging.StreamHandler(sys.stdout)
-stream_handler.setStream(open(sys.stdout.fileno(), mode='w', encoding='utf-8', buffering=1))
+stream_handler.setLevel(logging.INFO)
+
+# Configure file handler for log file
+file_handler = logging.FileHandler('logs/nextor.log', encoding='utf-8')
+file_handler.setLevel(logging.INFO)
+
+# Set up logging configuration
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
-    handlers=[
-        stream_handler,
-        logging.FileHandler('logs/nextor.log', encoding='utf-8') if os.path.exists('logs') or os.makedirs('logs', exist_ok=True) else stream_handler
-    ]
+    handlers=[stream_handler, file_handler]
 )
 logger = logging.getLogger(__name__)
 

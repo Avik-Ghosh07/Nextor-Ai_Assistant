@@ -440,10 +440,10 @@ def _search_web(query: str) -> Optional[str]:
                                 answer = answer[:497] + "..."
                             
                             # Filter out joke-like responses
-                            joke_indicators = ['why did', 'why do', 'why don\'t', 'because they', 'walk into a bar', 'knock knock']
+                            joke_indicators = ['why did', 'why do', 'why don\'t', 'because they can\'t', 'walk into a bar', 'knock knock', 'walks into a bar']
                             is_joke = any(indicator in answer.lower() for indicator in joke_indicators)
                             query_lower = query.lower()
-                            is_factual_query = any(query_lower.startswith(q) for q in ['what is', 'what are', 'who is', 'who are', 'where is', 'where are', 'when was', 'when is'])
+                            is_factual_query = any(query_lower.startswith(q) for q in ['what is', 'what are', 'who is', 'who are', 'where is', 'where are', 'when was', 'when is', 'define', 'explain'])
                             
                             if is_factual_query and is_joke:
                                 logger.warning(f"⚠️ Filtered out joke-like Wikipedia response for factual query, trying next method")
@@ -491,10 +491,10 @@ def _search_web(query: str) -> Optional[str]:
                     answer = answer[:497] + "..."
                 
                 # Filter out joke-like responses
-                joke_indicators = ['why did', 'why do', 'why don\'t', 'because they', 'walk into a bar', 'knock knock']
+                joke_indicators = ['why did', 'why do', 'why don\'t', 'because they can\'t', 'walk into a bar', 'knock knock', 'walks into a bar']
                 is_joke = any(indicator in answer.lower() for indicator in joke_indicators)
                 query_lower = query.lower()
-                is_factual_query = any(query_lower.startswith(q) for q in ['what is', 'what are', 'who is', 'who are', 'where is', 'where are', 'when was', 'when is'])
+                is_factual_query = any(query_lower.startswith(q) for q in ['what is', 'what are', 'who is', 'who are', 'where is', 'where are', 'when was', 'when is', 'define', 'explain'])
                 
                 if is_factual_query and is_joke:
                     logger.warning(f"⚠️ Filtered out joke-like DuckDuckGo response for factual query, trying next method")
@@ -564,12 +564,12 @@ def _search_web(query: str) -> Optional[str]:
                 
                 # Filter out joke-like responses that shouldn't be returned for factual queries
                 # Check if answer seems like a joke (contains typical joke patterns)
-                joke_indicators = ['why did', 'why do', 'why don\'t', 'because they', '!', 'walk into a bar', 'knock knock']
+                joke_indicators = ['why did', 'why do', 'why don\'t', 'because they can\'t', 'walk into a bar', 'knock knock', 'walks into a bar']
                 is_joke = any(indicator in answer.lower() for indicator in joke_indicators)
                 
                 # Only filter if this was a factual query (what/who/where/when questions)
                 query_lower = query.lower()
-                is_factual_query = any(query_lower.startswith(q) for q in ['what is', 'what are', 'who is', 'who are', 'where is', 'where are', 'when was', 'when is'])
+                is_factual_query = any(query_lower.startswith(q) for q in ['what is', 'what are', 'who is', 'who are', 'where is', 'where are', 'when was', 'when is', 'define', 'explain'])
                 
                 if is_factual_query and is_joke:
                     logger.warning(f"⚠️ Filtered out joke-like response for factual query")

@@ -1409,10 +1409,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
-        // Return a random helpful response for basic questions when AI is unavailable
+        // For factual questions when backend is offline, be honest instead of giving random quotes
+        if (lowerMsg.match(/^(what is|who is|when|where|why|how does|tell me about|define|explain)/)) {
+            return "I apologize, but I need the server connection to answer factual questions accurately. Please check your connection or try refreshing the page.";
+        }
+        
+        // For general questions, give a helpful response
         if (lowerMsg.match(/what|who|when|where|why|how|tell me|can you/)) {
-            const randomIndex = Math.floor(Math.random() * randomResponses.length);
-            return randomResponses[randomIndex];
+            return "I'm currently unable to connect to the server. Please check your connection and try again, or refresh the page.";
         }
         
         // If no pattern matches, return null to trigger web search

@@ -220,7 +220,7 @@ Contributions welcome! Please see our guidelines:
 ## 📈 Roadmap
 
 **Coming Soon:**
-- [ ] 🌍 Multi-language support (Hindi, Spanish, French)
+- [ ] 🌍 Multi-language support (Hindi,Bengali, Spanish, French)
 - [ ] 🎚️ Voice customization (speed, pitch, accent)
 - [ ] 📴 Offline mode with service workers
 - [ ] 🧩 Browser extension for quick access

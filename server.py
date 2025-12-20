@@ -671,6 +671,12 @@ def _get_builtin_knowledge(query: str) -> Optional[str]:
         'sundar pichai': "Sundar Pichai is the CEO of Alphabet Inc. and its subsidiary Google. He joined Google in 2004 and has overseen the development of products like Chrome, Chrome OS, and Google Drive before becoming CEO.",
         
         # Sports
+        'ms dhoni': "MS Dhoni (Mahendra Singh Dhoni) is a former Indian cricket captain and one of the greatest cricketers of all time. He led India to victory in the 2007 T20 World Cup, 2011 Cricket World Cup, and 2013 Champions Trophy. Known as 'Captain Cool' for his calm demeanor, he's regarded as one of the best finishers and wicketkeeper-captains in cricket history.",
+        'mahendra singh dhoni': "Mahendra Singh Dhoni, commonly known as MS Dhoni, is a legendary Indian cricketer. He captained the Indian cricket team to three ICC trophies (2007 T20 World Cup, 2011 World Cup, and 2013 Champions Trophy). He's famous for his finishing ability, wicketkeeping skills, and calm leadership under pressure.",
+        'dhoni': "MS Dhoni is one of India's greatest cricket captains. He led India to win the 2011 Cricket World Cup, 2007 T20 World Cup, and 2013 Champions Trophy. Known for his cool temperament and exceptional finishing skills, he's considered one of the best wicketkeeper-batsmen in cricket history.",
+        'virat kohli': "Virat Kohli is an Indian international cricketer and former captain of the Indian national team. Considered one of the best batsmen in the world, he holds numerous records including being the fastest to score 8,000, 9,000, 10,000, 11,000, and 12,000 runs in ODI cricket. He's known for his aggressive batting style and fitness.",
+        'sachin tendulkar': "Sachin Tendulkar, often called the 'God of Cricket' and 'Master Blaster', is a legendary Indian cricketer. He holds the record for the most runs in international cricket (34,357 runs) and is the only player to score 100 international centuries. He played for India for 24 years (1989-2013) and is widely regarded as one of the greatest batsmen of all time.",
+        'rohit sharma': "Rohit Sharma is an Indian international cricketer and current captain of the Indian cricket team in all formats. Known as the 'Hitman', he holds the record for the highest individual score in ODI cricket (264 runs). He's famous for his elegant batting style and ability to score big hundreds.",
         'sunil chhetri': "Sunil Chhetri is an Indian professional footballer who plays as a forward and captains both the Indian Super League club Bengaluru and the India national team. He is widely regarded as the greatest Indian footballer of all time and is among the highest international goalscorers in history.",
         'greatest footballer in india': "Sunil Chhetri is widely regarded as the greatest Indian footballer of all time. He is the captain of the Indian national team and one of the highest international goalscorers in history, alongside legends like Cristiano Ronaldo and Lionel Messi.",
         'best footballer in india': "Sunil Chhetri is considered the best footballer in India. He has led the national team for over a decade and holds the record for the most goals scored by an Indian in international football.",
@@ -762,9 +768,19 @@ def _choose_reply(message: str, history: List[Dict[str, str]]) -> str:
     
     lowered = message.lower()
     
-    # Check for built-in commands/patterns FIRST (before AI)
+    # Check built-in knowledge FIRST for ALL questions to save API quota and ensure accurate answers
+    is_question = any(lowered.startswith(q) for q in ['what is', 'what are', 'who is', 'who are', 'when was', 'where is', 'how does', 'why does', 'define', 'explain', 'tell me about','what was'])
+    
+    if is_question:
+        # Try built-in knowledge first for any question
+        builtin_answer = _get_builtin_knowledge(message)
+        if builtin_answer:
+            logger.info(f"✅ Using built-in knowledge base for: {message[:50]}")
+            return builtin_answer
+    
+    # Check for built-in commands/patterns AFTER questions but BEFORE AI
     # This ensures productivity tips, quotes, etc. are handled directly
-    if any(keyword in lowered for keyword in ['productivity tip', 'productivity', 'productive', 'give me a tip', 'give me a productivity tip', 'tell me some productivity tips', 'some productivity tips', 'tips for productivity']):
+    if any(keyword in lowered for keyword in ['productivity tip', 'productivity', 'productive', 'give me a tip', 'give me a productivity tip', 'tell me some productivity tips', 'some productivity tips', 'tips for productivity']) and not is_question:
         tips = [
             "Try the Pomodoro Technique: 25 minutes of deep focused work, then a 5-minute break. After 4 rounds, take a longer 15-30 minute break.",
             "Start your day by identifying your top 3 priorities. Focus on completing these before anything else - they're your non-negotiables.",
@@ -777,7 +793,7 @@ def _choose_reply(message: str, history: List[Dict[str, str]]) -> str:
         ]
         return random.choice(tips)
     
-    if any(keyword in lowered for keyword in ['motivate me', 'motivation', 'inspire', 'quote', 'motivational quote', 'tell me some motivation', 'give me some motivational quote', 'give me some motivation']):
+    if any(keyword in lowered for keyword in ['motivate me', 'motivation', 'inspire', 'quote', 'motivational quote', 'tell me some motivation', 'give me some motivational quote', 'give me some motivation']) and not is_question:
         quotes = [
             "You've got this! Break the task into one focused step, get that done, and the momentum will follow. Small wins lead to big victories.",
             "Your future self will thank you for getting started today. Every expert was once a beginner who refused to give up.",
@@ -789,16 +805,6 @@ def _choose_reply(message: str, history: List[Dict[str, str]]) -> str:
             "Your only limit is you. Believe in yourself and you're halfway there. Now take the first step!"
         ]
         return random.choice(quotes)
-    
-    # Check built-in knowledge FIRST for ALL questions to save API quota
-    is_question = any(lowered.startswith(q) for q in ['what is', 'what are', 'who is', 'who are', 'when was', 'where is', 'how does', 'why does', 'define', 'explain', 'tell me about','what was'])
-    
-    if is_question:
-        # Try built-in knowledge first for any question
-        builtin_answer = _get_builtin_knowledge(message)
-        if builtin_answer:
-            logger.info(f"✅ Using built-in knowledge base")
-            return builtin_answer
     
     # Try Gemini AI if no built-in answer
     gemini_reply = _get_gemini_reply(message, history)

@@ -27,13 +27,16 @@ except ImportError:
 # Load environment variables
 load_dotenv()
 
-# Configure logging
+# Configure logging with UTF-8 encoding for emoji support
+import sys
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setStream(open(sys.stdout.fileno(), mode='w', encoding='utf-8', buffering=1))
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
     handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('logs/nextor.log') if os.path.exists('logs') or os.makedirs('logs', exist_ok=True) else logging.StreamHandler()
+        stream_handler,
+        logging.FileHandler('logs/nextor.log', encoding='utf-8') if os.path.exists('logs') or os.makedirs('logs', exist_ok=True) else stream_handler
     ]
 )
 logger = logging.getLogger(__name__)

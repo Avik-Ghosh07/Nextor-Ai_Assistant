@@ -1,8 +1,9 @@
 import datetime as dt
+import logging
 import os
 import random
 import re
-from typing import Dict, List
+from typing import Dict, List, Optional, Union
 
 import requests
 from flask import Flask, jsonify, request, send_from_directory
@@ -25,6 +26,17 @@ except ImportError:
 
 # Load environment variables
 load_dotenv()
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('logs/nextor.log') if os.path.exists('logs') or os.makedirs('logs', exist_ok=True) else logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 
@@ -78,13 +90,17 @@ MAX_IPS_TRACKED = 1000  # Prevent memory issues
 
 def check_rate_limit(client_ip: str) -> bool:
     """Simple rate limiting check. Returns True if allowed."""
+    if not client_ip or client_ip == 'unknown':
+        logger.warning("Rate limit check called with invalid IP")
+        return True  # Allow unknown IPs but log the issue
+    
     now = dt.datetime.now().timestamp()
     
     # Periodic cleanup: remove IPs with no recent activity
     if len(request_tracker) > MAX_IPS_TRACKED:
         # Keep only IPs with requests in last window
         request_tracker.clear()
-        print(f"🧹 Cleared request_tracker (exceeded {MAX_IPS_TRACKED} IPs)")
+        logger.info(f"🧹 Cleared request_tracker (exceeded {MAX_IPS_TRACKED} IPs)")
     
     if client_ip not in request_tracker:
         request_tracker[client_ip] = []
@@ -116,15 +132,15 @@ if GEMINI_AVAILABLE and GEMINI_API_KEY:
         genai.configure(api_key=GEMINI_API_KEY)
         # Use gemini-flash-latest as it seems to have available quota
         gemini_model = genai.GenerativeModel('gemini-flash-latest')
-        print("✅ Gemini AI initialized successfully (gemini-flash-latest)")
+        logger.info("✅ Gemini AI initialized successfully (gemini-flash-latest)")
     except Exception as e:
-        print(f"⚠️ Gemini AI initialization failed: {e}")
-        print("ℹ️ App will use web search and built-in responses as fallback")
+        logger.error(f"⚠️ Gemini AI initialization failed: {e}")
+        logger.info("ℹ️ App will use web search and built-in responses as fallback")
 else:
     if not GEMINI_AVAILABLE:
-        print("ℹ️ google-generativeai not installed. Using web search fallback.")
+        logger.info("ℹ️ google-generativeai not installed. Using web search fallback.")
     if not GEMINI_API_KEY:
-        print("ℹ️ GEMINI_API_KEY not set. Using web search and built-in responses.")
+        logger.info("ℹ️ GEMINI_API_KEY not set. Using web search and built-in responses.")
 
 WEATHER_API_URL = "https://api.open-meteo.com/v1/forecast"
 GEOCODE_API_URL = "https://geocoding-api.open-meteo.com/v1/reverse"
@@ -162,7 +178,8 @@ WEATHER_CODES = {
 }
 
 
-def _safe_float(value) -> float | None:
+def _safe_float(value) -> Optional[float]:
+    """Safely convert value to float, returning None if invalid."""
     try:
         return float(value)
     except (TypeError, ValueError):
@@ -300,10 +317,10 @@ def _clean_message(message: str) -> str:
     return message.strip()
 
 
-def _search_web(query: str) -> str | None:
+def _search_web(query: str) -> Optional[str]:
     """Search the web using multiple methods: Wikipedia API, DuckDuckGo Instant Answer, and Google scraping."""
     try:
-        print(f"🔍 Searching web for: {query}")
+        logger.info(f"🔍 Searching web for: {query}")
         
         # Method 1: Try Wikipedia API for factual queries (works great for "who is", "what is")
         try:
@@ -362,11 +379,23 @@ def _search_web(query: str) -> str | None:
                         # Limit length
                         if len(answer) > 500:
                             answer = answer[:497] + "..."
-                        print(f"✅ Found Wikipedia answer for: {wiki_title}")
-                        return answer
+                        
+                        # Filter out joke-like responses
+                        joke_indicators = ['why did', 'why do', 'why don\'t', 'because they', 'walk into a bar', 'knock knock']
+                        is_joke = any(indicator in answer.lower() for indicator in joke_indicators)
+                        query_lower = query.lower()
+                        is_factual_query = any(query_lower.startswith(q) for q in ['what is', 'what are', 'who is', 'who are', 'where is', 'where are', 'when was', 'when is'])
+                        
+                        if is_factual_query and is_joke:
+                            logger.warning(f"⚠️ Filtered out joke-like Wikipedia response for factual query, trying next method")
+                            # Continue to next search method instead of returning
+                            break
+                        else:
+                            logger.info(f"✅ Found Wikipedia answer for: {wiki_title}")
+                            return answer
             
             # Step 2: If direct lookup failed, try OpenSearch to find better title
-            print(f"⚠️ Direct Wikipedia lookup failed for '{wiki_title}', trying search...")
+            logger.info(f"⚠️ Direct Wikipedia lookup failed for '{wiki_title}', trying search...")
             search_params = {
                 'action': 'opensearch',
                 'search': search_term,
@@ -380,7 +409,7 @@ def _search_web(query: str) -> str | None:
             
             if search_data and len(search_data) > 1 and search_data[1]:
                 best_title = search_data[1][0]
-                print(f"🔍 Found better Wikipedia title: '{best_title}'")
+                logger.info(f"🔍 Found better Wikipedia title: '{best_title}'")
                 
                 # Try getting extract for the found title
                 wiki_params['titles'] = best_title
@@ -398,16 +427,28 @@ def _search_web(query: str) -> str | None:
                                 answer += '.'
                             if len(answer) > 500:
                                 answer = answer[:497] + "..."
-                            print(f"✅ Found Wikipedia answer for: {best_title}")
-                            return answer
+                            
+                            # Filter out joke-like responses
+                            joke_indicators = ['why did', 'why do', 'why don\'t', 'because they', 'walk into a bar', 'knock knock']
+                            is_joke = any(indicator in answer.lower() for indicator in joke_indicators)
+                            query_lower = query.lower()
+                            is_factual_query = any(query_lower.startswith(q) for q in ['what is', 'what are', 'who is', 'who are', 'where is', 'where are', 'when was', 'when is'])
+                            
+                            if is_factual_query and is_joke:
+                                logger.warning(f"⚠️ Filtered out joke-like Wikipedia response for factual query, trying next method")
+                                # Continue to next search method instead of returning
+                                break
+                            else:
+                                logger.info(f"✅ Found Wikipedia answer for: {best_title}")
+                                return answer
 
-            print(f"⚠️ Wikipedia had no article for: {wiki_title}")
+            logger.warning(f"⚠️ Wikipedia had no article for: {wiki_title}")
         except Exception as wiki_error:
-            print(f"⚠️ Wikipedia search failed: {wiki_error}")
+            logger.warning(f"⚠️ Wikipedia search failed: {wiki_error}")
         
         # Method 2: Try DuckDuckGo Instant Answer API (free, no rate limits)
         try:
-            print(f"🔍 Trying DuckDuckGo Instant Answer API...")
+            logger.info(f"🔍 Trying DuckDuckGo Instant Answer API...")
             ddg_url = "https://api.duckduckgo.com/"
             ddg_params = {
                 'q': query,
@@ -437,20 +478,31 @@ def _search_web(query: str) -> str | None:
                     answer += '.'
                 if len(answer) > 500:
                     answer = answer[:497] + "..."
-                print(f"✅ Found DuckDuckGo answer")
-                return answer
+                
+                # Filter out joke-like responses
+                joke_indicators = ['why did', 'why do', 'why don\'t', 'because they', 'walk into a bar', 'knock knock']
+                is_joke = any(indicator in answer.lower() for indicator in joke_indicators)
+                query_lower = query.lower()
+                is_factual_query = any(query_lower.startswith(q) for q in ['what is', 'what are', 'who is', 'who are', 'where is', 'where are', 'when was', 'when is'])
+                
+                if is_factual_query and is_joke:
+                    logger.warning(f"⚠️ Filtered out joke-like DuckDuckGo response for factual query, trying next method")
+                    # Continue to next search method instead of returning
+                else:
+                    logger.info(f"✅ Found DuckDuckGo answer")
+                    return answer
             else:
-                print(f"⚠️ DuckDuckGo returned no useful answer")
+                logger.warning(f"⚠️ DuckDuckGo returned no useful answer, trying next method")
         except Exception as ddg_error:
-            print(f"⚠️ DuckDuckGo search failed: {ddg_error}")
+            logger.warning(f"⚠️ DuckDuckGo search failed: {ddg_error}")
         
         # Method 3: Fallback to Google search scraping (last resort)
         try:
             if not BS4_AVAILABLE:
-                print("⚠️ BeautifulSoup not installed, skipping Google search scraping")
+                logger.warning("⚠️ BeautifulSoup not installed, skipping Google search scraping")
                 raise ImportError("bs4 not available")
             
-            print(f"🔍 Trying Google search scraping...")
+            logger.info(f"🔍 Trying Google search scraping...")
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -490,7 +542,7 @@ def _search_web(query: str) -> str | None:
                     text = element.get_text(strip=True)
                     if text and len(text) > 30:  # Lowered threshold slightly
                         answer = text
-                        print(f"✅ Found Google answer with selector: {selector}")
+                        logger.info(f"✅ Found Google answer with selector: {selector}")
                         break
                 if answer:
                     break
@@ -498,6 +550,20 @@ def _search_web(query: str) -> str | None:
             if answer:
                 # Clean up the answer
                 answer = answer.strip().replace('Wikipedia', '').strip()
+                
+                # Filter out joke-like responses that shouldn't be returned for factual queries
+                # Check if answer seems like a joke (contains typical joke patterns)
+                joke_indicators = ['why did', 'why do', 'why don\'t', 'because they', '!', 'walk into a bar', 'knock knock']
+                is_joke = any(indicator in answer.lower() for indicator in joke_indicators)
+                
+                # Only filter if this was a factual query (what/who/where/when questions)
+                query_lower = query.lower()
+                is_factual_query = any(query_lower.startswith(q) for q in ['what is', 'what are', 'who is', 'who are', 'where is', 'where are', 'when was', 'when is'])
+                
+                if is_factual_query and is_joke:
+                    logger.warning(f"⚠️ Filtered out joke-like response for factual query")
+                    return None
+                
                 # Limit to first 3 sentences
                 sentences = answer.split('. ')[:3]
                 answer = '. '.join(sentences)
@@ -507,28 +573,28 @@ def _search_web(query: str) -> str | None:
                     answer = answer[:497] + "..."
                 return answer
             else:
-                print(f"⚠️ Google scraping found no answers")
+                logger.warning(f"⚠️ Google scraping found no answers")
         except ImportError:
-            print(f"❌ BeautifulSoup not installed - cannot scrape Google")
+            logger.error(f"❌ BeautifulSoup not installed - cannot scrape Google")
         except Exception as google_error:
-            print(f"⚠️ Google search scraping failed: {google_error}")
+            logger.warning(f"⚠️ Google search scraping failed: {google_error}")
         
-        print(f"❌ All web search methods failed for: {query}")
+        logger.error(f"❌ All web search methods failed for: {query}")
         return None
         
     except Exception as e:
-        print(f"❌ Web search error: {e}")
+        logger.error(f"❌ Web search error: {e}")
         return None
 
 
-def _get_gemini_reply(message: str, history: List[Dict[str, str]]) -> str | None:
+def _get_gemini_reply(message: str, history: List[Dict[str, str]]) -> Optional[str]:
     """Get AI response from Gemini with timeout. Returns None if unavailable or fails."""
     if not gemini_model:
-        print("⚠️ Gemini model not available - Check GEMINI_API_KEY in .env file")
+        logger.warning("⚠️ Gemini model not available - Check GEMINI_API_KEY in .env file")
         return None
     
     try:
-        print(f"🤖 Sending to Gemini AI: {message[:100]}...")
+        logger.info(f"🤖 Sending to Gemini AI: {message[:100]}...")
         # Build conversation context for Gemini (minimal for speed)
         context = "You are Nextor, an AI assistant. Answer directly and concisely in under 100 words. Be helpful and accurate.\n\n"
         
@@ -561,24 +627,24 @@ def _get_gemini_reply(message: str, history: List[Dict[str, str]]) -> str | None
                 reply = reply[7:].strip()
             elif reply.lower().startswith('assistant:'):
                 reply = reply[10:].strip()
-            print(f"✅ Gemini replied successfully")
+            logger.info(f"✅ Gemini replied successfully")
             return reply
         else:
-            print(f"⚠️ Gemini returned empty response")
+            logger.warning(f"⚠️ Gemini returned empty response")
             return None
         
     except Exception as e:
         error_msg = str(e)
         if '429' in error_msg or 'quota' in error_msg.lower():
-            print(f"❌ Gemini quota exceeded - switching to web search fallback")
+            logger.error(f"❌ Gemini quota exceeded - switching to web search fallback")
         elif 'timeout' in error_msg.lower():
-            print(f"❌ Gemini timeout - switching to web search fallback")
+            logger.error(f"❌ Gemini timeout - switching to web search fallback")
         else:
-            print(f"❌ Gemini error: {error_msg} - switching to fallback")
+            logger.error(f"❌ Gemini error: {error_msg} - switching to fallback")
         return None
 
 
-def _get_builtin_knowledge(query: str) -> str | None:
+def _get_builtin_knowledge(query: str) -> Optional[str]:
     """Return built-in knowledge for common technical topics."""
     query_lower = query.lower()
     
@@ -598,6 +664,30 @@ def _get_builtin_knowledge(query: str) -> str | None:
         'greatest footballer in india': "Sunil Chhetri is widely regarded as the greatest Indian footballer of all time. He is the captain of the Indian national team and one of the highest international goalscorers in history, alongside legends like Cristiano Ronaldo and Lionel Messi.",
         'best footballer in india': "Sunil Chhetri is considered the best footballer in India. He has led the national team for over a decade and holds the record for the most goals scored by an Indian in international football.",
         'indian football captain': "The captain of the Indian national football team is Sunil Chhetri. He is a legendary figure in Indian football and plays as a forward.",
+        
+        # Famous Landmarks and Places
+        'taj mahal': "The Taj Mahal is an ivory-white marble mausoleum located in Agra, Uttar Pradesh, India. It was commissioned in 1631 by Mughal emperor Shah Jahan to house the tomb of his wife Mumtaz Mahal. It's considered one of the Seven Wonders of the World and is a UNESCO World Heritage Site.",
+        'eiffel tower': "The Eiffel Tower is a wrought-iron lattice tower located in Paris, France. Built in 1889 for the World's Fair, it stands 330 meters (1,083 ft) tall and has become a global cultural icon of France and one of the most recognizable structures in the world.",
+        'great wall of china': "The Great Wall of China is a series of fortifications built along the historical northern borders of China. Built over many centuries by various Chinese dynasties, it stretches over 13,000 miles and is one of the most impressive architectural feats in human history.",
+        'statue of liberty': "The Statue of Liberty is a colossal neoclassical sculpture on Liberty Island in New York Harbor, USA. A gift from France to the United States in 1886, it represents freedom and democracy and has become an iconic symbol of America.",
+        'pyramids of giza': "The Pyramids of Giza are ancient pyramid structures located in Giza, Egypt. Built around 2560 BC, the Great Pyramid of Giza is the largest and oldest of the three pyramids and was one of the Seven Wonders of the Ancient World.",
+        'colosseum': "The Colosseum is an ancient amphitheater located in Rome, Italy. Built in 70-80 AD, it could hold up to 80,000 spectators and was used for gladiatorial contests and public spectacles. It's one of Rome's most iconic landmarks.",
+
+        # Computer Hardware & Fundamentals
+        'ram': "RAM (Random Access Memory) is the computer's short-term memory that temporarily stores data and programs currently being used. It's volatile memory, meaning it loses all data when the computer is turned off. More RAM allows your computer to handle more tasks simultaneously and run programs faster.",
+        'random access memory': "RAM (Random Access Memory) is the computer's short-term memory that temporarily stores data and programs currently being used. It's volatile memory, meaning it loses all data when the computer is turned off. More RAM allows your computer to handle more tasks simultaneously and run programs faster.",
+        'cpu': "CPU (Central Processing Unit) is the brain of the computer that executes instructions and performs calculations. It processes all the operations needed to run programs and the operating system. CPU speed is measured in GHz (gigahertz).",
+        'central processing unit': "The CPU (Central Processing Unit) is the primary component of a computer that performs most of the processing. It executes instructions from programs, performs calculations, and manages data flow between different computer components.",
+        'gpu': "GPU (Graphics Processing Unit) is specialized hardware designed to handle graphics rendering and parallel processing tasks. Originally designed for gaming graphics, GPUs are now essential for AI, machine learning, video editing, and cryptocurrency mining due to their ability to process many operations simultaneously.",
+        'graphics processing unit': "A GPU (Graphics Processing Unit) is a specialized processor designed to rapidly manipulate and alter memory to accelerate graphics rendering. Modern GPUs are highly parallel and excellent for tasks beyond graphics, including AI and scientific computing.",
+        'ssd': "SSD (Solid State Drive) is a storage device that uses flash memory to store data persistently. Unlike traditional hard drives, SSDs have no moving parts, making them much faster, more durable, and energy-efficient. They significantly improve computer boot times and application loading speeds.",
+        'solid state drive': "An SSD (Solid State Drive) uses integrated circuit assemblies to store data persistently, typically using flash memory. SSDs are much faster than traditional hard disk drives (HDDs) and have become the standard for modern computers.",
+        'hard drive': "A hard drive (HDD - Hard Disk Drive) is a data storage device that uses magnetic storage to store and retrieve digital data. It has spinning platters and a moving read/write head. While slower than SSDs, HDDs offer more storage capacity at a lower cost.",
+        'motherboard': "The motherboard is the main circuit board of a computer that connects all components together. It houses the CPU, RAM, and provides connectors for other hardware like storage drives, graphics cards, and peripherals. It's essentially the backbone of your computer.",
+        'operating system': "An operating system (OS) is system software that manages computer hardware, software resources, and provides common services for computer programs. Popular examples include Windows, macOS, Linux, iOS, and Android.",
+        'binary': "Binary is a base-2 number system using only 0s and 1s, which represents the fundamental language of computers. All data in computers is ultimately stored and processed as binary code. Each binary digit is called a bit, and 8 bits make a byte.",
+        'algorithm': "An algorithm is a step-by-step procedure or formula for solving a problem or completing a task. In computing, algorithms are the instructions that tell computers how to process data and make decisions. Good algorithms are efficient and produce correct results.",
+        'database': "A database is an organized collection of structured data stored electronically in a computer system. Databases are managed by Database Management Systems (DBMS) and allow for efficient storage, retrieval, and manipulation of large amounts of information.",
 
         # Technologies
         'next js': "Next.js is a powerful React framework for building production-ready web applications. It provides features like server-side rendering, static site generation, API routes, and automatic code splitting. Created by Vercel, it's popular for building fast, SEO-friendly websites.",
@@ -638,20 +728,19 @@ def _get_builtin_knowledge(query: str) -> str | None:
         'artificial intelligence': "Artificial Intelligence refers to computer systems that can perform tasks requiring human intelligence, such as visual perception, speech recognition, decision-making, and language translation.",
     }
     
-    # Check for exact matches with word boundaries to avoid false positives
-    # e.g., 'ai' shouldn't match 'Pichai', 'react' shouldn't match 'create'
+    # First, try to match exact phrases
     for keyword, answer in knowledge_base.items():
         # Use word boundaries for single words, exact match for multi-word phrases
         if ' ' in keyword:
             # Multi-word phrase - exact match
             if keyword in query_lower:
-                print(f"✅ Using built-in knowledge for: {keyword}")
+                logger.info(f"✅ Using built-in knowledge for: {keyword}")
                 return answer
         else:
             # Single word - use word boundaries
             pattern = r'\b' + re.escape(keyword) + r'\b'
             if re.search(pattern, query_lower):
-                print(f"✅ Using built-in knowledge for: {keyword}")
+                logger.info(f"✅ Using built-in knowledge for: {keyword}")
                 return answer
     
     return None
@@ -700,7 +789,7 @@ def _choose_reply(message: str, history: List[Dict[str, str]]) -> str:
         # Try built-in knowledge first for common TECHNICAL topics (not people)
         builtin_answer = _get_builtin_knowledge(message)
         if builtin_answer:
-            print(f"✅ Using built-in knowledge base")
+            logger.info(f"✅ Using built-in knowledge base")
             return builtin_answer
     
     # Try Gemini AI for other questions
@@ -712,7 +801,7 @@ def _choose_reply(message: str, history: List[Dict[str, str]]) -> str:
     if is_person_question:
         builtin_answer = _get_builtin_knowledge(message)
         if builtin_answer:
-            print(f"✅ Using built-in knowledge for person query")
+            logger.info(f"✅ Using built-in knowledge for person query")
             return builtin_answer
     
     # If Gemini fails, try web search for ALL questions (not just specific patterns)
@@ -720,23 +809,23 @@ def _choose_reply(message: str, history: List[Dict[str, str]]) -> str:
         # Try web search for any question
         web_answer = _search_web(message)
         if web_answer:
-            print(f"✅ Using web search answer")
+            logger.info(f"✅ Using web search answer")
             return web_answer
         else:
-            print(f"⚠️ Web search returned no results for: {message}")
+            logger.warning(f"⚠️ Web search returned no results for: {message}")
     
     # For non-question messages when Gemini fails, also try web search
     if not is_question:
         # Try web search for any conversational query
         web_answer = _search_web(message)
         if web_answer:
-            print(f"✅ Using web search for conversational query")
+            logger.info(f"✅ Using web search for conversational query")
             return web_answer
         else:
-            print(f"⚠️ Web search returned no results for: {message}")
+            logger.warning(f"⚠️ Web search returned no results for: {message}")
     
     # Fallback to pattern-based responses
-    print(f"⚠️ Gemini and web search unavailable, using fallback for: {message}")
+    logger.warning(f"⚠️ Gemini and web search unavailable, using fallback for: {message}")
     now = dt.datetime.now()
     greeting = f"Good {('morning' if now.hour < 12 else 'afternoon' if now.hour < 18 else 'evening')}!"
 
@@ -855,13 +944,18 @@ def _choose_reply(message: str, history: List[Dict[str, str]]) -> str:
 
     # General helpful response - but if it's a question that failed, indicate we couldn't answer
     if is_question:
+        logger.error(f"❌ All methods failed for question: {message}")
         return (
             f"I apologize, but I couldn't find information about '{message}'. "
+            "\n\nI tried:\n"
+            "✓ Built-in knowledge base\n"
+            "✓ Gemini AI (may have quota limits)\n"
+            "✓ Web search (Wikipedia, DuckDuckGo, Google)\n\n"
             "This may be because:\n"
-            "• My Gemini AI quota has been temporarily exceeded (resets daily)\n"
-            "• The web search didn't find relevant results\n"
-            "• The query may need to be rephrased\n\n"
-            "Please try again later, rephrase your question, or ask about topics like productivity, music, weather, or general tech questions."
+            "• Gemini AI quota exceeded (resets daily)\n"
+            "• Web search didn't find relevant results\n"
+            "• The topic may be too recent or obscure\n\n"
+            "Try rephrasing your question or ask about: productivity, tech, famous people/places, weather, music, etc."
         )
     
     # For non-questions, provide general helpful response
@@ -923,7 +1017,7 @@ def chat():
         return jsonify({"reply": reply})
         
     except Exception as e:
-        print(f"❌ Chat endpoint error: {e}")
+        logger.error(f"❌ Chat endpoint error: {e}", exc_info=True)
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -943,14 +1037,14 @@ if __name__ == "__main__":
     # Use Waitress for production-grade WSGI server
     try:
         from waitress import serve
-        print("🚀 Starting Nextor AI with Waitress server...")
-        print(f"📡 Server running on port {port}")
-        print("🌐 Also accessible at http://0.0.0.0:" + str(port))
-        print("Press Ctrl+C to stop the server")
+        logger.info("🚀 Starting Nextor AI with Waitress server...")
+        logger.info(f"📡 Server running on port {port}")
+        logger.info("🌐 Also accessible at http://0.0.0.0:" + str(port))
+        logger.info("Press Ctrl+C to stop the server")
         serve(app, host="0.0.0.0", port=port, threads=6)
     except ImportError:
-        print("⚠️  Waitress not installed. Using Flask development server...")
-        print("💡 Install Waitress for better performance: pip install waitress")
+        logger.warning("⚠️  Waitress not installed. Using Flask development server...")
+        logger.info("💡 Install Waitress for better performance: pip install waitress")
         app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False, threaded=True)
 
 

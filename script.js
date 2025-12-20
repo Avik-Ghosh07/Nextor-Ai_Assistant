@@ -1309,9 +1309,9 @@ document.addEventListener('DOMContentLoaded', () => {
             "Fun fact: The world's oldest known living tree is over 5,000 years old!",
             
             // Helpful suggestions
-            "I can help you with: playing music, checking weather, setting reminders, doing calculations, opening websites, and more!",
-            "Need help with productivity? I can share tips, set reminders, or play focus music for you!",
-            "Want to stay organized? I can help you manage tasks, set reminders, and plan your day!",
+            "I can help you with: playing music, checking weather, setting reminders, doing calculations, opening websites, and more! What would you like to do?",
+            "Need help with productivity? Ask me for productivity tips, work-life balance advice, or study strategies!",
+            "Want to organize your day? Try saying 'set a reminder for 3 PM' or 'add reminder' to get started!",
             "I'm here to boost your productivity! Try asking me to play music, check weather, or give you a productivity tip!",
             "Looking for inspiration? Ask me for a motivational quote or a fun fact!",
             "Need a laugh? I've got jokes! Or I can help with practical tasks like calculations and web searches.",

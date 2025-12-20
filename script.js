@@ -1102,52 +1102,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Conversational intelligence ---
-    let lastHealthCheck = 0;
-    const HEALTH_CHECK_CACHE_MS = 30000; // Cache health check for 30 seconds
+    let backendFailureCount = 0;
+    const MAX_FAILURES_BEFORE_FALLBACK = 2; // Only use fallback after 2 consecutive failures
     
-    async function checkBackendAvailability() {
-        // Use cached result if checked recently
-        const now = Date.now();
-        if (backendAvailable && (now - lastHealthCheck) < HEALTH_CHECK_CACHE_MS) {
-            return true;
-        }
-        
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 1000); // 1s timeout
-            const response = await fetch(`${API_BASE_URL}/api/health`, {
-                method: 'GET',
-                signal: controller.signal,
-                cache: 'no-cache'
-            });
-            clearTimeout(timeoutId);
-            backendAvailable = response.ok;
-            lastHealthCheck = now;
-            return backendAvailable;
-        } catch (error) {
-            backendAvailable = false;
-            lastHealthCheck = now;
-            return false;
-        }
-    }
-
     async function fetchChatReply(message) {
-        // Check backend availability first (uses cache if checked recently)
-        const isAvailable = await checkBackendAvailability();
-        if (!isAvailable) {
-            console.warn('Chat backend is offline, using fallback responses');
-            // Fallback pattern matching for common questions
-            return getOfflineFallbackResponse(message);
-        }
-
         try {
             const payload = {
                 message,
-                history: conversationHistory.slice(-6).map(({ role, text }) => ({ role, text })) // Reduced to 6 for speed
+                history: conversationHistory.slice(-6).map(({ role, text }) => ({ role, text }))
             };
             console.log('📤 Sending to chat API:', `${API_BASE_URL}/api/chat`, payload);
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout (was 5s)
             
             const response = await fetch(`${API_BASE_URL}/api/chat`, {
                 method: 'POST',
@@ -1162,19 +1128,34 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('❌ Chat API error:', response.status, errorText);
-                backendAvailable = false;
-                // Try fallback on error
-                return getOfflineFallbackResponse(message);
+                backendFailureCount++;
+                
+                // Only use fallback after multiple failures
+                if (backendFailureCount >= MAX_FAILURES_BEFORE_FALLBACK) {
+                    console.warn('⚠️ Multiple backend failures, using fallback');
+                    return getOfflineFallbackResponse(message);
+                } else {
+                    return "I'm having trouble connecting to the server. Please try again.";
+                }
             }
+            
             const data = await response.json();
             console.log('✅ Chat API reply:', data.reply);
             backendAvailable = true;
+            backendFailureCount = 0; // Reset failure count on success
             return data.reply;
+            
         } catch (error) {
             console.error('❌ Chat backend error:', error);
-            backendAvailable = false;
-            // Try fallback on error
-            return getOfflineFallbackResponse(message);
+            backendFailureCount++;
+            
+            // Only use fallback after multiple failures
+            if (backendFailureCount >= MAX_FAILURES_BEFORE_FALLBACK) {
+                console.warn('⚠️ Multiple backend failures, using fallback');
+                return getOfflineFallbackResponse(message);
+            } else {
+                return "I'm having trouble connecting to the server. Please try again.";
+            }
         }
     }
     

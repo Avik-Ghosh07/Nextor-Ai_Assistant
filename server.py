@@ -790,30 +790,20 @@ def _choose_reply(message: str, history: List[Dict[str, str]]) -> str:
         ]
         return random.choice(quotes)
     
-    # Try Gemini AI FIRST for all messages
-    # BUT check built-in knowledge for common tech questions first to save API quota
-    # Skip built-in knowledge for "who is" questions (about people)
+    # Check built-in knowledge FIRST for ALL questions to save API quota
     is_question = any(lowered.startswith(q) for q in ['what is', 'what are', 'who is', 'who are', 'when was', 'where is', 'how does', 'why does', 'define', 'explain', 'tell me about','what was'])
-    is_person_question = lowered.startswith('who is') or lowered.startswith('who are')
     
-    if is_question and not is_person_question:
-        # Try built-in knowledge first for common TECHNICAL topics (not people)
+    if is_question:
+        # Try built-in knowledge first for any question
         builtin_answer = _get_builtin_knowledge(message)
         if builtin_answer:
             logger.info(f"✅ Using built-in knowledge base")
             return builtin_answer
     
-    # Try Gemini AI for other questions
+    # Try Gemini AI if no built-in answer
     gemini_reply = _get_gemini_reply(message, history)
     if gemini_reply:
         return gemini_reply
-    
-    # If Gemini fails, check built-in knowledge for people questions too
-    if is_person_question:
-        builtin_answer = _get_builtin_knowledge(message)
-        if builtin_answer:
-            logger.info(f"✅ Using built-in knowledge for person query")
-            return builtin_answer
     
     # If Gemini fails, try web search for ALL questions (not just specific patterns)
     if is_question:

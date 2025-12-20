@@ -1,8 +1,10 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- Configuration & DOM refs ---
-    // Use relative URLs for Vercel deployment, fallback to localhost for local dev
-    const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+    // Use relative URLs for production deployment, localhost for local dev
+    const API_BASE_URL = (window.location.hostname === 'localhost' || 
+                          window.location.hostname === '127.0.0.1' ||
+                          window.location.protocol === 'file:')
         ? 'http://127.0.0.1:5000' 
         : '';
 

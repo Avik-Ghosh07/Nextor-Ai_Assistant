@@ -1105,6 +1105,25 @@ document.addEventListener('DOMContentLoaded', () => {
     let backendFailureCount = 0;
     const MAX_FAILURES_BEFORE_FALLBACK = 2; // Only use fallback after 2 consecutive failures
     
+    async function checkBackendAvailability() {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout for health check
+            const response = await fetch(`${API_BASE_URL}/api/health`, {
+                method: 'GET',
+                signal: controller.signal,
+                cache: 'no-cache'
+            });
+            clearTimeout(timeoutId);
+            const isAvailable = response.ok;
+            backendAvailable = isAvailable;
+            return isAvailable;
+        } catch (error) {
+            backendAvailable = false;
+            return false;
+        }
+    }
+    
     async function fetchChatReply(message) {
         try {
             const payload = {

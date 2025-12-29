@@ -80,35 +80,19 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastWeatherData = null;
     let backendAvailable = null; // null = unknown, true = online, false = offline
     
-    // Safe localStorage access with error handling
     const safeGetLocalStorage = (key, defaultValue = '{}') => {
         try {
             const value = localStorage.getItem(key);
             if (!value) return JSON.parse(defaultValue);
-            
-            // Validate JSON before parsing
             const parsed = JSON.parse(value);
-            
-            // Additional validation: ensure parsed value is not null
-            if (parsed === null || parsed === undefined) {
-                console.warn(`localStorage key "${key}" is null/undefined, using default`);
-                return JSON.parse(defaultValue);
-            }
-            
-            return parsed;
+            return (parsed === null || parsed === undefined) ? JSON.parse(defaultValue) : parsed;
         } catch (e) {
-            console.warn(`Failed to parse localStorage key: ${key}`, e);
-            // Clear corrupted data
-            try {
-                localStorage.removeItem(key);
-            } catch (removeError) {
-                console.warn('Failed to remove corrupted localStorage key:', removeError);
-            }
+            console.warn(`localStorage parse error for "${key}":`, e.message);
+            try { localStorage.removeItem(key); } catch {}
             return JSON.parse(defaultValue);
         }
     };
     
-    // Safe localStorage write with error handling for QuotaExceededError
     const safeSetLocalStorage = (key, value) => {
         try {
             const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
@@ -116,42 +100,26 @@ document.addEventListener('DOMContentLoaded', () => {
             return true;
         } catch (e) {
             if (e.name === 'QuotaExceededError') {
-                console.warn('LocalStorage quota exceeded. Clearing old data...');
-                // Try to free up space by removing old conversations
                 try {
                     localStorage.removeItem('nextor_conversations');
                     localStorage.setItem(key, stringValue);
                     return true;
-                } catch (retryError) {
-                    console.error('Failed to save to localStorage even after cleanup:', retryError);
-                    return false;
-                }
-            } else {
-                console.error(`Failed to write localStorage key: ${key}`, e);
-                return false;
+                } catch { return false; }
             }
+            console.error(`localStorage write error for "${key}":`, e.message);
+            return false;
         }
     };
     
-    // Sanitize HTML to prevent XSS attacks
-    const sanitizeHTML = (str) => {
-        const div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
-    };
+
     
-    // Validate and sanitize user input
     const validateInput = (input, maxLength = 1000) => {
         if (typeof input !== 'string') return '';
-        // Remove any HTML tags
-        let sanitized = input.replace(/<[^>]*>/g, '');
-        // Remove script and event handlers
-        sanitized = sanitized.replace(/on\w+\s*=/gi, '');
-        // Remove javascript: and data: protocols
-        sanitized = sanitized.replace(/javascript:/gi, '').replace(/data:/gi, '');
-        // Trim and limit length
-        sanitized = sanitized.trim().substring(0, maxLength);
-        return sanitized;
+        return input.replace(/<[^>]*>/g, '')
+                    .replace(/on\w+\s*=/gi, '')
+                    .replace(/javascript:|data:/gi, '')
+                    .trim()
+                    .substring(0, maxLength);
     };
     
     // Safe math evaluator for mobile browsers that block Function() and eval()
@@ -438,11 +406,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         const synth = window.speechSynthesis;
-        
-        // Force cancel any ongoing speech and clear queue completely
         synth.cancel();
         
-        // Small delay to ensure cancellation completes
         setTimeout(() => {
             utterance.text = text;
             utterance.rate = 1.0;
@@ -457,81 +422,44 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             };
             utterance.onerror = (event) => {
-                console.warn('Speech synthesis error:', event.error);
+                console.warn('Speech error:', event.error);
                 updateStatus('idle');
-                // Only retry on recoverable errors
                 if (event.error === 'network' || event.error === 'synthesis-unavailable') {
                     setTimeout(() => synth.speak(utterance), 500);
                 }
             };
             
-            // Speak only if synthesis is available and not already speaking
-            if (synth && !synth.speaking) {
-                synth.speak(utterance);
-            }
+            if (synth && !synth.speaking) synth.speak(utterance);
         }, 100);
     }
 
     function openWebsite(url, speakText, appScheme = null) {
         speak(speakText);
         
-        // On mobile, try to open native app first using deep link
         if (appScheme && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-            console.log('📱 Mobile detected, trying app:', appScheme);
-            
-            // Instagram and Facebook use web URLs that auto-redirect to app
             if (url.includes('instagram') || url.includes('facebook')) {
                 window.open(url, '_blank');
                 return;
             }
             
-            // For other apps, try deep link with fallback detection
-            let appOpened = false;
-            const startTime = Date.now();
-            
-            // Try to open the app
             window.location.href = appScheme;
             
-            // Check if app opened by monitoring page visibility
             const checkAppOpened = setTimeout(() => {
-                const timeElapsed = Date.now() - startTime;
-                
-                // If page is still visible and minimal time passed, app likely didn't open
-                if (document.hidden || timeElapsed > 2000) {
-                    // App opened successfully
-                    appOpened = true;
-                    console.log('✅ App opened successfully');
-                } else {
-                    // App not installed, open web URL
-                    console.log('⚠️ App not installed, opening web URL');
-                    window.open(url, '_blank');
-                }
+                if (!document.hidden) window.open(url, '_blank');
             }, 1500);
             
-            // Cleanup on page hide (app opened)
             const handleVisibilityChange = () => {
                 if (document.hidden) {
-                    appOpened = true;
                     clearTimeout(checkAppOpened);
                     document.removeEventListener('visibilitychange', handleVisibilityChange);
                 }
             };
             
             document.addEventListener('visibilitychange', handleVisibilityChange);
-            
-            // Fallback cleanup
-            setTimeout(() => {
-                document.removeEventListener('visibilitychange', handleVisibilityChange);
-            }, 3000);
-            
+            setTimeout(() => document.removeEventListener('visibilitychange', handleVisibilityChange), 3000);
         } else {
-            // Desktop or no app scheme - just open web URL
             window.open(url, '_blank');
         }
-    }
-
-    function saveKnowledge() {
-        safeSetLocalStorage('nextor_knowledge', JSON.stringify(knowledge));
     }
 
     function saveReminders() {
@@ -609,86 +537,76 @@ document.addEventListener('DOMContentLoaded', () => {
     function showNotification(title, body) {
         console.log('🔔 Showing notification:', title, body);
         
-        // Try browser notification
         if ('Notification' in window && Notification.permission === 'granted') {
             try {
                 const notification = new Notification(title, {
                     body,
                     icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="%2310b981"/><text x="50" y="60" text-anchor="middle" font-family="Arial" font-size="40" fill="white">N</text></svg>',
-                    badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="%2310b981"/></svg>',
-                    vibrate: [200, 100, 200], // Vibration pattern
-                    requireInteraction: true, // Keep notification visible
-                    tag: 'nextor-reminder' // Replace old notifications
+                    vibrate: [200, 100, 200],
+                    requireInteraction: true,
+                    tag: 'nextor-reminder'
                 });
-                
-                notification.onclick = () => {
-                    window.focus();
-                    notification.close();
-                };
-                
+                notification.onclick = () => { window.focus(); notification.close(); };
                 setTimeout(() => notification.close(), 10000);
             } catch (err) {
                 console.error('Notification error:', err);
             }
-        } else {
-            console.warn('⚠️ Notifications not available:', 
-                'Notification' in window ? `Permission: ${Notification.permission}` : 'Not supported');
         }
         
-        // Vibrate device if supported
-        if ('vibrate' in navigator) {
-            navigator.vibrate([200, 100, 200, 100, 200]);
-        }
+        if ('vibrate' in navigator) navigator.vibrate([200, 100, 200, 100, 200]);
         
-        // Play sound alert
         try {
             const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBjGH0fPTgjMGHm7A7+OZSA0PVqzn77BdGAg+l9n0yXksBSd+zPDajjwKElyx6OyrWBUIQ6Hn88BwJAU1kdXzzn0pBSx6xu/blUELElyx6OyrWBUIQ6Hn88BwJAU1kdXzzn0pBSx6xu/blUELE1mw5PDTqVQVCEOh5/PAcCQFNZHV885/KQUre8bv25VBC');
             audio.volume = 0.5;
-            audio.play().catch(() => console.log('Audio play blocked'));
-        } catch (err) {
-            console.log('Audio not available');
-        }
+            audio.play().catch(() => {});
+        } catch {}
         
-        // Visual alert in page
         const alertDiv = document.createElement('div');
-        alertDiv.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:9999;background:#f59e0b;color:white;padding:16px 24px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.3);font-weight:600;max-width:90%;text-align:center;animation:slideDown 0.3s ease-out;';
-        alertDiv.innerHTML = `⏰ <strong>Reminder for:</strong><br>${body}`;
+        alertDiv.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:9999;background:#f59e0b;color:white;padding:16px 24px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.3);font-weight:600;max-width:90%;text-align:center';
+        alertDiv.innerHTML = `⏰ <strong>Reminder:</strong><br>${body}`;
         document.body.appendChild(alertDiv);
+        setTimeout(() => alertDiv.remove(), 5000);
         
-        // Remove after 5 seconds
-        setTimeout(() => {
-            alertDiv.style.animation = 'slideUp 0.3s ease-out';
-            setTimeout(() => alertDiv.remove(), 300);
-        }, 5000);
-        
-        // Try to speak the reminder
-        try {
-            speak(`Reminder: ${body}`);
-        } catch (err) {
-            console.log('Speech synthesis blocked');
-        }
+        try { speak(`Reminder: ${body}`); } catch {}
     }
 
     function scheduleReminder(reminder, index) {
-        if (!reminder.scheduledTime) return;
+        if (!reminder || !reminder.scheduledTime) {
+            console.warn('⚠️ Invalid reminder - missing scheduledTime:', reminder);
+            return false;
+        }
+        
         const now = new Date();
         const delay = reminder.scheduledTime - now.getTime();
         
+        console.log(`📅 Scheduling reminder: "${reminder.text}" in ${Math.round(delay / 1000)}s`);
+        
         // Clean up expired reminder immediately
         if (delay <= 0) {
-            reminders.splice(index, 1);
-            saveReminders();
-            return;
+            console.log('⏰ Reminder already expired, triggering immediately');
+            showNotification('⏰ Nextor Reminder', reminder.text);
+            const currentIndex = reminders.findIndex(r => r.id === reminder.id);
+            if (currentIndex !== -1) {
+                reminders.splice(currentIndex, 1);
+                saveReminders();
+                renderReminders();
+            }
+            return false;
         }
 
         // Clear existing timeout if already scheduled
         if (activeTimeouts.has(reminder.id)) {
+            console.log('🔄 Clearing existing timeout for reminder:', reminder.id);
             clearTimeout(activeTimeouts.get(reminder.id));
+            activeTimeouts.delete(reminder.id);
         }
 
+        // Set new timeout
         const timeoutId = setTimeout(() => {
-            showNotification('Nextor Reminder', reminder.text);
-            // Find current index (might have changed)
+            console.log('⏰ Reminder triggered:', reminder.text);
+            showNotification('⏰ Nextor Reminder', reminder.text);
+            
+            // Remove reminder after notification
             const currentIndex = reminders.findIndex(r => r.id === reminder.id);
             if (currentIndex !== -1) {
                 reminders.splice(currentIndex, 1);
@@ -699,26 +617,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }, delay);
 
         activeTimeouts.set(reminder.id, timeoutId);
+        console.log('✅ Reminder scheduled successfully, timeout ID:', timeoutId);
+        return true;
     }
 
-    // Check reminders periodically (every 10 seconds) to handle mobile background states
+    // Check reminders periodically (every 5 seconds) to handle mobile background states and timeout failures
     function startReminderWatcher() {
-        console.log('🔔 Starting reminder watcher');
+        console.log('🔔 Starting reminder watcher (5s interval)');
         setInterval(() => {
             const now = new Date().getTime();
+            let triggered = false;
+            
             // Iterate backwards to safely remove items
             for (let i = reminders.length - 1; i >= 0; i--) {
                 const reminder = reminders[i];
-                if (reminder.scheduledTime && reminder.scheduledTime <= now && reminder.scheduledTime > (now - 120000)) {
-                    // Reminder is due (within last 2 minutes)
-                    console.log('⏰ Reminder triggered:', reminder.text);
+                
+                // Check if reminder is due (within last 3 minutes to catch missed ones)
+                if (reminder.scheduledTime && reminder.scheduledTime <= now && reminder.scheduledTime > (now - 180000)) {
+                    console.log('⏰ Watcher triggered reminder:', reminder.text);
                     showNotification('⏰ Nextor Reminder', reminder.text);
+                    
+                    // Clear any active timeout
+                    if (activeTimeouts.has(reminder.id)) {
+                        clearTimeout(activeTimeouts.get(reminder.id));
+                        activeTimeouts.delete(reminder.id);
+                    }
+                    
                     reminders.splice(i, 1);
-                    saveReminders();
-                    renderReminders();
+                    triggered = true;
                 }
             }
-        }, 10000); // Check every 10 seconds for better responsiveness
+            
+            if (triggered) {
+                saveReminders();
+                renderReminders();
+            }
+        }, 5000); // Check every 5 seconds for better responsiveness
     }
 
     function cleanupExpiredReminders() {
@@ -879,22 +813,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return new Promise((resolve, reject) => {
             console.log('🌍 Requesting location...');
             
-            // Check if geolocation is supported
             if (!('geolocation' in navigator)) {
                 reject(new Error('Geolocation not supported by your browser'));
                 return;
             }
 
-            // Check if we're on HTTPS (required for geolocation on mobile)
             const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            console.log('🔒 Secure context:', isSecure, 'Protocol:', window.location.protocol);
             
             if (!isSecure) {
                 reject(new Error('Geolocation requires HTTPS connection. Please access this site via HTTPS.'));
                 return;
             }
 
-            // Try to get location directly (works better on mobile)
             navigator.geolocation.getCurrentPosition(
                 (position) => {
                     console.log('✅ Location acquired:', position.coords.latitude, position.coords.longitude);
@@ -902,35 +832,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 (error) => {
                     console.error('❌ Geolocation error:', error.code, error.message);
-                    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-                    const isAndroid = /Android/.test(navigator.userAgent);
                     let errorMessage = 'LOCATION_ERROR: ';
                     
                     switch(error.code) {
                         case error.PERMISSION_DENIED:
-                            if (isIOS) {
-                                errorMessage += 'iPhone/iPad: Settings > Safari > Location > While Using App. Then close and reopen browser.';
-                            } else if (isAndroid) {
-                                errorMessage += 'Android: Settings > Site Settings > Location > Allow. Enable device GPS in Quick Settings.';
-                            } else {
-                                errorMessage += 'Click "Allow" when browser asks for location permission. Then refresh.';
-                            }
+                            errorMessage += 'Location access denied. Please enable location permissions in your browser settings and refresh the page.';
                             break;
                         case error.POSITION_UNAVAILABLE:
-                            errorMessage += 'GPS signal unavailable. Move to an open area or enable High Accuracy mode in Settings.';
+                            errorMessage += 'GPS signal unavailable. Please ensure location services are enabled on your device.';
                             break;
                         case error.TIMEOUT:
-                            errorMessage += 'Location request timed out. Check GPS is enabled and try again.';
+                            errorMessage += 'Location request timed out. Try again or check that GPS/location services are enabled.';
                             break;
                         default:
-                            errorMessage += 'Unknown error (code: ' + error.code + '). Restart your browser and try again.';
+                            errorMessage += 'Unable to get location. Please try again or enable location services.';
                     }
                     reject(new Error(errorMessage));
                 },
                 {
-                    enableHighAccuracy: true,
-                    timeout: 15000, // Increased timeout for mobile
-                    maximumAge: 30000 // Allow cached position up to 30s old
+                    enableHighAccuracy: false,
+                    timeout: 30000,
+                    maximumAge: 60000
                 }
             );
         });
@@ -1062,23 +984,28 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Weather error', error);
             const errorMsg = error.message || String(error);
-            const denied = errorMsg.includes('DENIED') || errorMsg.includes('denied');
-            const httpsRequired = errorMsg.includes('HTTPS');
-            const isNetworkError = error.name === 'AbortError' || errorMsg.includes('fetch') || errorMsg.includes('Failed to fetch');
             
             let message;
             let htmlMessage;
             
-            if (httpsRequired) {
+            if (errorMsg.includes('HTTPS')) {
                 message = 'Location requires HTTPS. Please use https:// to access this site.';
-                htmlMessage = `<div class="text-amber-400 font-semibold mb-2">🔒 HTTPS Required</div><div class="text-sm">Location access needs a secure connection. Use <strong>https://</strong> instead of http://</div>`;
-            } else if (denied) {
-                // Extract the detailed instructions from error message
-                const instructionMatch = errorMsg.match(/LOCATION_(?:DENIED|ERROR):\s*(.+)/);
-                const instructions = instructionMatch ? instructionMatch[1] : 'Enable location in browser settings';
-                message = `Location blocked. ${instructions}`;
-                htmlMessage = `<div class="text-amber-400 font-semibold mb-2">📍 Location Access Blocked</div><div class="text-sm text-left" style="line-height: 1.6;">${instructions}<br><br><strong>Then:</strong> Close browser completely and reopen this page.</div>`;
-            } else if (isNetworkError) {
+                htmlMessage = `<div class="text-amber-400 font-semibold mb-2">🔒 HTTPS Required</div><div class="text-sm">Location access needs a secure connection.</div>`;
+            } else if (errorMsg.includes('LOCATION_ERROR')) {
+                const details = errorMsg.replace('LOCATION_ERROR: ', '');
+                message = details;
+                htmlMessage = `
+                    <div class="text-amber-400 font-semibold mb-3">📍 Location Access Issue</div>
+                    <div class="text-sm text-left mb-4" style="line-height: 1.6;">${details}</div>
+                    <div class="text-xs text-slate-400 mt-3 p-3 bg-slate-800/50 rounded-lg">
+                        <strong>Quick Tips:</strong><br>
+                        • Make sure location/GPS is enabled on your device<br>
+                        • Check browser permissions for this site<br>
+                        • Try refreshing the page<br>
+                        • On mobile: Enable high accuracy mode in location settings
+                    </div>
+                `;
+            } else if (error.name === 'AbortError' || errorMsg.includes('fetch') || errorMsg.includes('offline')) {
                 message = 'Weather service is currently offline. The backend server may not be running.';
                 htmlMessage = `<div class="text-red-400 font-semibold mb-2">⚠️ Service Offline</div><div class="text-sm">Backend server not running. Check terminal for errors.</div>`;
                 backendAvailable = false;
@@ -1181,6 +1108,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Fallback response system for common questions when backend is offline
     function getOfflineFallbackResponse(message) {
         const lowerMsg = message.toLowerCase().trim();
+        
+        // Creator/origin questions
+        if (lowerMsg.includes('who created you') || lowerMsg.includes('who made you') || 
+            lowerMsg.includes('who built you') || lowerMsg.includes('who is your creator') ||
+            lowerMsg.includes('your creator')) {
+            return 'I was created by Mister Avik Ghosh.';
+        }
         
         // Technical terms pattern matching
         const techPatterns = {
@@ -1871,6 +1805,109 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // Comprehensive reminder command handler
+    async function handleReminderCommand(command) {
+        console.log('🔔 Processing reminder command:', command);
+        
+        let text = '';
+        let amount = null;
+        let unit = null;
+        let scheduledTime = null;
+        
+        // Pattern 1: "remind me [activity] after/in X minutes/hours"
+        // Example: "remind me coding after 1 minute"
+        let match = command.match(/^remind me (.+?)\s+(after|in)\s+(\d+)\s+(minute|minutes|min|hour|hours|hr)s?$/i);
+        if (match) {
+            text = match[1].trim();
+            amount = parseInt(match[3]);
+            unit = match[4].toLowerCase();
+            console.log('✅ Pattern 1 matched:', { text, amount, unit });
+        }
+        
+        // Pattern 2: "remind me after/in X minutes/hours [activity]"
+        // Example: "remind me after 5 minutes to exercise"
+        if (!match) {
+            match = command.match(/^remind me (after|in)\s+(\d+)\s+(minute|minutes|min|hour|hours|hr)s?\s+(?:to\s+)?(.+)$/i);
+            if (match) {
+                amount = parseInt(match[2]);
+                unit = match[3].toLowerCase();
+                text = match[4].trim();
+                console.log('✅ Pattern 2 matched:', { text, amount, unit });
+            }
+        }
+        
+        // Pattern 3: "remind me in X minutes/hours" (without activity)
+        // Example: "remind me in 10 minutes"
+        if (!match) {
+            match = command.match(/^remind me (after|in)\s+(\d+)\s+(minute|minutes|min|hour|hours|hr)s?$/i);
+            if (match) {
+                amount = parseInt(match[2]);
+                unit = match[3].toLowerCase();
+                text = 'reminder';
+                console.log('✅ Pattern 3 matched:', { text, amount, unit });
+            }
+        }
+        
+        // Pattern 4: "set reminder for X minutes/hours"
+        // Example: "set reminder for 30 minutes"
+        if (!match) {
+            match = command.match(/^(?:set|create)\s+reminder\s+for\s+(\d+)\s+(minute|minutes|min|hour|hours|hr)s?(?:\s+(?:to\s+)?(.+))?$/i);
+            if (match) {
+                amount = parseInt(match[1]);
+                unit = match[2].toLowerCase();
+                text = match[3] ? match[3].trim() : 'reminder';
+                console.log('✅ Pattern 4 matched:', { text, amount, unit });
+            }
+        }
+        
+        // Calculate scheduled time
+        if (amount && unit) {
+            const now = new Date();
+            if (unit.startsWith('minute') || unit.startsWith('min')) {
+                scheduledTime = now.getTime() + (amount * 60000);
+            } else if (unit.startsWith('hour') || unit.startsWith('hr')) {
+                scheduledTime = now.getTime() + (amount * 3600000);
+            }
+            
+            if (scheduledTime) {
+                // Create reminder object
+                const reminder = {
+                    id: Date.now() + Math.random(),
+                    text: text,
+                    time: `in ${amount} ${unit}`,
+                    scheduledTime: scheduledTime,
+                    priority: 'medium',
+                    category: 'personal',
+                    repeat: 'once'
+                };
+                
+                console.log('📝 Creating reminder:', reminder);
+                
+                // Add to array
+                reminders.push(reminder);
+                saveReminders();
+                renderReminders();
+                
+                // Schedule the reminder
+                const scheduled = scheduleReminder(reminder, reminders.length - 1);
+                
+                if (scheduled !== false) {
+                    // Normalize unit for speech
+                    const unitLabel = amount === 1 ? unit.replace(/s$/, '') : unit;
+                    speak(`Reminder set: ${text} in ${amount} ${unitLabel}.`);
+                    return true;
+                } else {
+                    speak(`Reminder for ${text} set, but time has already passed.`);
+                    return true;
+                }
+            }
+        }
+        
+        // No pattern matched
+        console.log('❌ No reminder pattern matched');
+        return false;
+    }
+
     async function handleCommands(rawCommand) {
         const command = rawCommand.toLowerCase().trim();
         userCommandEl.textContent = rawCommand;
@@ -2025,7 +2062,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!handled && command.includes('weather')) {
             await requestWeatherForCurrentLocation({ speakResponse: true });
             handled = true;
-        } else if (command.startsWith('remind me to')) {
+        }
+        
+        if (!handled && (command.includes('remind me') || command.includes('reminder'))) {
+            // Smart reminder parsing - handles multiple natural language patterns
+            handled = await handleReminderCommand(command);
+        }
+        
+        if (!handled && command.startsWith('remind me to')) {
             const payload = command.substring('remind me to'.length).trim();
             let time = null;
             let text = payload;
@@ -2058,8 +2102,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const reminder = {
                 id: Date.now() + Math.random(),
                 text,
-                time,
-                scheduledTime
+                time: time || 'no time set',
+                scheduledTime,
+                priority: 'medium',
+                category: 'personal',
+                repeat: 'once'
             };
 
             reminders.push(reminder);
@@ -2281,15 +2328,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     recognition.onresult = async (event) => {
         const transcript = event.results[0][0].transcript.trim();
-        if (transcript) {
-            try {
-                await handleCommands(transcript);
-            } catch (error) {
-                console.error('Error handling command:', error);
-                speak('Sorry, I encountered an error processing your request. Please try again.');
-            }
-        } else {
+        if (!transcript) {
             speak("I didn't catch that. Could you please repeat?");
+            return;
+        }
+        
+        console.log('🎤 Heard:', transcript);
+        
+        // Process the command directly
+        try {
+            updateStatus('processing');
+            await handleCommands(transcript);
+        } catch (error) {
+            console.error('Error handling command:', error);
+            speak('Sorry, I encountered an error processing your request. Please try again.');
         }
     };
 
@@ -2491,15 +2543,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearChatBtn = document.getElementById('clear-chat');
     const chatMessages = document.getElementById('chat-messages');
     
-    // Function to add chat message to UI
+    let chatHistory = [];
+    const MAX_CHAT_HISTORY = 10;
+    
+    /**
+     * Add message to chat UI
+     */
     function addChatMessage(role, text) {
         if (!chatMessages) return;
         
-        // Remove placeholder if exists
         const placeholder = chatMessages.querySelector('.text-center');
-        if (placeholder) {
-            placeholder.remove();
-        }
+        if (placeholder) placeholder.remove();
         
         const messageDiv = document.createElement('div');
         messageDiv.className = `chat-message ${role}`;
@@ -2508,7 +2562,12 @@ document.addEventListener('DOMContentLoaded', () => {
         bubbleDiv.className = `message-bubble ${role}`;
         
         if (role === 'bot') {
-            bubbleDiv.innerHTML = `<i class="fas fa-robot bot-icon"></i>${text}`;
+            const icon = document.createElement('i');
+            icon.className = 'fas fa-robot bot-icon';
+            const span = document.createElement('span');
+            span.textContent = text;
+            bubbleDiv.appendChild(icon);
+            bubbleDiv.appendChild(span);
         } else {
             bubbleDiv.textContent = text;
         }
@@ -2516,294 +2575,152 @@ document.addEventListener('DOMContentLoaded', () => {
         messageDiv.appendChild(bubbleDiv);
         chatMessages.appendChild(messageDiv);
         
-        // Auto-scroll to bottom
+        chatHistory.push({ role: role === 'user' ? 'user' : 'assistant', text });
+        if (chatHistory.length > MAX_CHAT_HISTORY) {
+            chatHistory = chatHistory.slice(-MAX_CHAT_HISTORY);
+        }
+        
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
     
-    // Function to show typing indicator
+    /**
+     * Show/hide typing indicator
+     */
     function showTypingIndicator() {
         if (!chatMessages) return;
+        removeTypingIndicator();
         
         const typingDiv = document.createElement('div');
         typingDiv.className = 'chat-message bot typing-indicator-container';
         typingDiv.id = 'typing-indicator';
         typingDiv.innerHTML = `
             <div class="message-bubble bot typing-indicator">
-                <span></span>
-                <span></span>
-                <span></span>
+                <span></span><span></span><span></span>
             </div>
         `;
         chatMessages.appendChild(typingDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
     
-    // Function to remove typing indicator
     function removeTypingIndicator() {
-        const typingIndicator = document.getElementById('typing-indicator');
-        if (typingIndicator) {
-            typingIndicator.remove();
+        const indicator = document.getElementById('typing-indicator');
+        if (indicator) indicator.remove();
+    }
+    
+    /**
+     * Send message to backend API
+     */
+    async function sendChatToBackend(message) {
+        try {
+            const payload = {
+                message: message,
+                history: chatHistory.slice(-6).map(({ role, text }) => ({ role, text }))
+            };
+            
+            console.log('📤 Sending to chat API:', payload);
+            
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+            
+            const response = await fetch(`${API_BASE_URL}/api/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('❌ Chat API error:', response.status, errorData);
+                throw new Error(errorData.error || `HTTP ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('✅ Chat response:', data);
+            
+            return data.reply || "I received your message but couldn't generate a response.";
+            
+        } catch (error) {
+            console.error('❌ Chat error:', error);
+            
+            if (error.name === 'AbortError') {
+                return "Request timed out. Please try again.";
+            }
+            
+            if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                return "Can't connect to server. Please check your internet connection.";
+            }
+            
+            return "Technical difficulties. Please try again in a moment.";
         }
     }
     
-    // Function to send text chat message
+    /**
+     * Send text chat message
+     */
     async function sendTextChatMessage() {
         if (!chatInput) return;
         
         const message = validateInput(chatInput.value.trim(), 1000);
         if (!message || message.length < 1) return;
         
-        // Add user message to chat
-        addChatMessage('user', sanitizeHTML(message));
+        console.log('💬 Sending message:', message);
+        
+        addChatMessage('user', message);
         chatInput.value = '';
         
-        // Show typing indicator
+        if (sendChatBtn) sendChatBtn.disabled = true;
         showTypingIndicator();
         
         try {
-            // Process message through command handler (includes math, knowledge, AI, etc.)
-            const command = message.toLowerCase().trim();
-            let response = '';
-            let handled = false;
-            
-            console.log('💬 Processing text chat:', command);
-            
-            // Check for math expressions
-            let mathExpression = '';
-            
-            // First check for natural language math (6 into 5, 3 plus 2, etc.)
-            const hasNaturalMath = /\b(plus|minus|times|multiplied|divided|divide|over|into|x)\b/i.test(command);
-            const hasNumbers = /\d/.test(command);
-            
-            if (command.startsWith('calculate') || command.startsWith('what')) {
-                // Extract expression after trigger words
-                mathExpression = command
-                    .replace(/^calculate\s*/i, '')
-                    .replace(/^(what is|what's|whats)\s*/i, '')
-                    .trim();
-                
-                // Check if it contains math keywords or is a pure math expression
-                const hasMathKeywords = /\b(plus|minus|times|multiplied|divided|divide|over|into|x)\b/i.test(mathExpression);
-                const mathNumbers = /\d/.test(mathExpression);
-                const isPureMath = /^[\d+\-*/.() ]+$/.test(mathExpression);
-                
-                // Only treat as math if it has numbers and either math keywords or is pure math expression
-                if (!mathNumbers || (!hasMathKeywords && !isPureMath)) {
-                    mathExpression = '';
-                }
-            } else if (hasNumbers && hasNaturalMath) {
-                // Natural language math like "6 into 5", "3 times 4"
-                mathExpression = command;
-            } else if (/^[\d+\-*/.() ]+$/.test(command)) {
-                // Direct math expression like "5-4", "2+3", etc.
-                mathExpression = command;
-            }
-            
-            if (mathExpression) {
-                console.log('📐 Math detected:', mathExpression);
-                try {
-                    // Replace natural language with operators
-                    mathExpression = mathExpression
-                        .replace(/\bx\b/gi, '*')
-                        .replace(/plus/gi, '+')
-                        .replace(/minus/gi, '-')
-                        .replace(/times/gi, '*')
-                        .replace(/multiplied\s*by/gi, '*')
-                        .replace(/into/gi, '*')
-                        .replace(/divided\s*by/gi, '/')
-                        .replace(/divide\s*by/gi, '/')
-                        .replace(/over/gi, '/')
-                        .replace(/\s+/g, '');
-                    
-                    console.log('📐 Converted expression:', mathExpression);
-                    
-                    // Validate it's a safe math expression
-                    if (!/^[\d+\-*/.()]+$/.test(mathExpression)) {
-                        throw new Error('Invalid characters in expression');
-                    }
-                    
-                    // Evaluate the expression (with multiple fallbacks for mobile browsers)
-                    let result;
-                    let method = '';
-                    
-                    try {
-                        // Try Function() first
-                        result = Function('"use strict"; return (' + mathExpression + ')')();
-                        method = 'Function()';
-                    } catch (funcError) {
-                        console.log('⚠️ Function() blocked:', funcError.message);
-                        try {
-                            // Try eval as fallback
-                            result = eval(mathExpression);
-                            method = 'eval()';
-                        } catch (evalError) {
-                            console.log('⚠️ eval() also blocked:', evalError.message);
-                            // Last resort: use safer math parser
-                            result = safeMathEval(mathExpression);
-                            method = 'safeMathEval()';
-                        }
-                    }
-                    
-                    const finalResult = Number.isInteger(result) ? result : Math.round(result * 100) / 100;
-                    console.log(`✅ Math result: ${finalResult} (method: ${method})`);
-                    
-                    response = `The answer is ${finalResult}`;
-                    handled = true;
-                } catch (error) {
-                    console.log('Math evaluation failed:', error.message);
-                    // Don't set handled = true, let it fall through to other handlers
-                }
-            }
-            
-            // Check built-in knowledge patterns first
-            if (!handled) {
-                console.log('🔍 Checking topic patterns for:', command);
-                // First check if it matches any topic-based commands
-                if (command.includes('work life balance advice') || command.includes('work-life balance') || command.includes('balance work') || (command.includes('advice') && command.includes('work'))) {
-                    console.log('✅ Matched work-life balance pattern');
-                    const tips = [
-                        "Burnout prevention: Work hard, but rest harder. Your brain needs downtime to consolidate learning!",
-                        "Set boundaries: No emails after 8 PM. No work on weekends. Your future self will thank you!",
-                        "Schedule self-care like meetings: Exercise, hobbies, family time. They're not optional, they're essential!",
-                        "Feeling overwhelmed? Take a 5-minute walk. Fresh air + movement = mental reset!",
-                        "Quality > quantity. 4 focused hours beat 12 distracted hours every single time!",
-                        "Remember: You're a human being, not a human doing. Your worth isn't your productivity!"
-                    ];
-                    response = tips[Math.floor(Math.random() * tips.length)];
-                    handled = true;
-                    console.log('💡 Response set:', response);
-                } else if (command.includes('productivity tip') || command.includes('productive') || command.includes('how to be productive') || (command.includes('advice') && command.includes('productivity'))) {
-                    const tips = [
-                        "Try the Pomodoro Technique: 25 minutes of focused work, then a 5-minute break.",
-                        "Start with your most important task first thing in the morning when your energy is highest!",
-                        "Eliminate distractions: turn off notifications, close extra tabs, and focus on one task at a time.",
-                        "Use the 2-minute rule: if a task takes less than 2 minutes, do it immediately!",
-                        "Batch similar tasks together to minimize context switching and boost efficiency!",
-                        "Take regular breaks! Your brain needs rest to maintain peak performance throughout the day."
-                    ];
-                    response = tips[Math.floor(Math.random() * tips.length)];
-                    handled = true;
-                } else if (command.includes('study tip') || command.includes('how to study') || command.includes('exam tip') || (command.includes('advice') && command.includes('study'))) {
-                    const tips = [
-                        "Exam prep tip: Use active recall instead of just re-reading. Test yourself frequently!",
-                        "Space out your study sessions over days/weeks. Spaced repetition = better retention!",
-                        "Study tip: Teach what you learned to someone else. Teaching = deepest understanding!",
-                        "Use the Feynman Technique: Explain concepts in simple terms as if teaching a beginner.",
-                        "Morning = peak brain performance! Study difficult subjects early, easier ones later.",
-                        "Don't skip sleep before exams! 7-8 hours sleep = better memory consolidation and focus."
-                    ];
-                    response = tips[Math.floor(Math.random() * tips.length)];
-                    handled = true;
-                } else if (command.includes('career advice') || command.includes('career tip') || command.includes('job advice') || (command.includes('advice') && command.includes('career'))) {
-                    const advice = [
-                        "Career tip: Build projects, not just certificates. Real work speaks louder than credentials!",
-                        "Networking matters! Connect with people in your field. 70% of jobs aren't advertised publicly.",
-                        "Don't wait for perfection to apply. If you meet 60% of job requirements, go for it!",
-                        "Learn in public: Share your journey on LinkedIn, GitHub, or blogs. It builds your personal brand!",
-                        "Soft skills = hard currency. Communication, teamwork, problem-solving matter as much as technical skills.",
-                        "Invest in mentorship: Find someone 2-3 steps ahead. Their mistakes can save you years!"
-                    ];
-                    response = advice[Math.floor(Math.random() * advice.length)];
-                    handled = true;
-                } else if (command.includes('motivate me') || command.includes('motivation') || command.includes('inspire me') || (command.includes('give me') && command.includes('motivation'))) {
-                    const quotes = [
-                        "Success is not final, failure is not fatal: it is the courage to continue that counts.",
-                        "The only way to do great work is to love what you do.",
-                        "Believe you can and you're halfway there.",
-                        "The harder you work for something, the greater you'll feel when you achieve it.",
-                        "Dream big, start small, act now.",
-                        "Your limitation—it's only your imagination. What will you create today?"
-                    ];
-                    response = quotes[Math.floor(Math.random() * quotes.length)];
-                    handled = true;
-                } else if (command.includes('joke') || command.includes('make me laugh') || command.includes('funny')) {
-                    const jokes = [
-                        "Why don't programmers trust stairs? Because they're always up to something!",
-                        "Why did the computer go to therapy? It had too many bytes of emotional baggage!",
-                        "Parallel lines have so much in common. It's a shame they'll never meet!",
-                        "Why do Java developers wear glasses? Because they can't C sharp!",
-                        "Why do programmers prefer dark mode? Because light attracts bugs!",
-                        "What do you call 8 hobbits? A hobbyte!"
-                    ];
-                    response = jokes[Math.floor(Math.random() * jokes.length)];
-                    handled = true;
-                } else {
-                    const fallbackResponse = getOfflineFallbackResponse(message);
-                    if (fallbackResponse) {
-                        response = fallbackResponse;
-                        handled = true;
-                    } else {
-                        // Fallback returned null - should trigger web search
-                        console.log('🔍 Fallback returned null, will try AI then web search');
-                    }
-                }
-            }
-            
-            // Try AI backend
-            if (!handled) {
-                response = await fetchChatReply(message);
-                if (response) {
-                    console.log('📝 AI Response:', response);
-                    handled = true;
-                } else {
-                    // AI returned null/empty - trigger web search
-                    console.log('📝 AI returned empty response, triggering web search');
-                }
-            }
-            
-            // Final fallback - web search
-            if (!handled || !response) {
-                response = "I'm not sure about that. Let me search the web for you.";
-                handled = true; // Mark as handled to prevent error fallback
-                setTimeout(() => {
-                    window.open(`https://www.google.com/search?q=${encodeURIComponent(message)}`, '_blank');
-                }, 1000);
-            }
-            
-            // Remove typing indicator
+            const response = await sendChatToBackend(message);
             removeTypingIndicator();
             
-            console.log('📤 Final response:', response, 'Handled:', handled);
-            
-            // Add bot response - ensure response is valid
             if (response && typeof response === 'string' && response.length > 0) {
-                addChatMessage('bot', sanitizeHTML(response));
-                // Speak the response (Text-to-Speech)
-                speak(response);
+                addChatMessage('bot', response);
             } else {
-                console.warn('⚠️ Invalid response, using fallback');
-                const fallbackMsg = "I can help you with productivity tips, work-life balance advice, study tips, career guidance, motivation, and more! What would you like to know?";
-                addChatMessage('bot', fallbackMsg);
-                speak(fallbackMsg);
+                addChatMessage('bot', "I'm having trouble processing your request. Please try again.");
             }
             
         } catch (error) {
-            console.error('❌ Error in text chat:', error);
-            console.error('Error stack:', error.stack);
+            console.error('❌ Send error:', error);
             removeTypingIndicator();
-            addChatMessage('bot', "Sorry, I encountered an error. Try asking about productivity, work-life balance, study tips, or career advice!");
+            addChatMessage('bot', "Sorry, I encountered an error. Please try again later.");
+        } finally {
+            if (sendChatBtn) sendChatBtn.disabled = false;
+            if (chatInput) chatInput.focus();
         }
     }
     
-    // Send button click handler
+    // Event listeners
     if (sendChatBtn) {
-        sendChatBtn.addEventListener('click', sendTextChatMessage);
+        sendChatBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            sendTextChatMessage();
+        });
     }
     
-    // Enter key handler for chat input
     if (chatInput) {
         chatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
+            if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 sendTextChatMessage();
             }
         });
+        
+        // Auto-resize textarea
+        chatInput.addEventListener('input', () => {
+            chatInput.style.height = 'auto';
+            chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+        });
     }
     
-    // Clear chat button handler
     if (clearChatBtn) {
         clearChatBtn.addEventListener('click', () => {
-            // Clear all messages
+            chatHistory = [];
+            
             if (chatMessages) {
                 chatMessages.innerHTML = `
                     <div class="text-center py-8">
@@ -2815,6 +2732,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 `;
             }
+            
+            if (chatInput) {
+                chatInput.value = '';
+                chatInput.style.height = 'auto';
+                chatInput.focus();
+            }
+            
+            console.log('✅ Chat cleared');
         });
     }
     

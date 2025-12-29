@@ -5,8 +5,11 @@ Flask-Cors>=3.0.10,<5.0.0
 # HTTP Requests
 requests>=2.31.0,<3.0.0
 
-# AI/ML
-google-generativeai>=0.3.0,<1.0.0
+# AI/ML - Multiple LLM Providers
+google-generativeai>=0.3.0,<1.0.0  # Google Gemini
+openai>=1.12.0,<2.0.0              # OpenAI GPT-4, GPT-3.5, etc.
+anthropic>=0.18.0,<1.0.0           # Anthropic Claude
+groq>=0.4.0,<1.0.0                 # Groq (Fast inference)
 
 # Environment & Configuration
 python-dotenv>=1.0.0,<2.0.0

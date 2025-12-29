@@ -1,255 +1,320 @@
-# Nextor — AI Voice Assistant 🎙️
+# Nextor AI Assistant
 
-> **Your intelligent voice companion with enterprise-grade code quality**
+**Created by Avik Ghosh**
 
-A production-ready AI assistant combining voice recognition, natural language processing, and real-time web services. Built with **FAANG-level engineering standards** featuring comprehensive logging, type safety, and security hardening.
+A powerful multi-LLM AI assistant with web search and weather capabilities. Supports multiple AI providers including OpenAI GPT-4, Anthropic Claude, Groq, Google Gemini, and local Ollama models. Built with clean MVC architecture for maintainability and scalability.
 
-[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
-[![Flask](https://img.shields.io/badge/Flask-2.3+-green.svg)](https://flask.palletsprojects.com/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Code Quality](https://img.shields.io/badge/Code%20Quality-FAANG%20Level-brightgreen.svg)]()
+## ✨ Features
 
-**⚡ Tech Stack:** Python Flask · Google Gemini AI · Web Speech API · Tailwind CSS
+### Multi-LLM Support
+- **OpenAI GPT-4** - Industry-leading AI with superior reasoning
+- **Anthropic Claude 3.5** - Excellent for coding and analysis
+- **Groq Llama 3.1** - Ultra-fast inference with free tier
+- **Google Gemini Pro** - Google's latest AI with generous free quota
+- **Ollama** - Run models locally for complete privacy
+- **Automatic Fallback** - Seamlessly switches providers if one fails
 
----
+### Intelligent Search & Data
+- **Web Search** - Integrated Wikipedia, DuckDuckGo, and Google Custom Search
+- **Real-time Weather** - Current conditions and forecasts via OpenWeatherMap API
+- **Built-in Knowledge** - Handles math, programming questions, and general knowledge offline
 
-## ✨ What Makes This Special
-
-🛡️ **Production Ready** - Enterprise logging, type hints, comprehensive error handling  
-🔒 **Security First** - Input validation, XSS prevention, CORS, rate limiting  
-📱 **Mobile Optimized** - Works flawlessly on phones with haptic feedback  
-🧠 **Smart Fallbacks** - Works without API keys using web search + built-in knowledge  
-🎨 **Modern UI** - Glass morphism design with smooth animations  
-⚡ **Zero Setup** - Deploy in 2 minutes or run locally instantly
-
----
+### Production-Ready Architecture
+- **MVC Pattern** - Clean separation of concerns across 20+ well-organized files
+- **Security** - XSS prevention, CORS protection, rate limiting, input sanitization
+- **Logging** - Comprehensive logging system for debugging and monitoring
+- **Error Handling** - Graceful degradation and detailed error messages
 
 ## 🚀 Quick Start
 
-<details>
-<summary><b>🌐 Deploy to Render (Recommended - Free)</b></summary>
+### Prerequisites
+- Python 3.11 or higher
+- pip (Python package manager)
+- API key for at least one LLM provider (see [Getting API Keys](#getting-api-keys))
 
-1. **Fork this repo** → [render.com](https://render.com) → Create Web Service
-2. **Connect GitHub** → Auto-detects `render.yaml`
-3. **Add API Key** (Optional): `GEMINI_API_KEY` from [Google AI Studio](https://makersuite.google.com/app/apikey)
-4. **Deploy!** → Live in ~2 minutes
+### Installation
 
-</details>
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd Nextor-Ai-Assistant
+   ```
 
-<details>
-<summary><b>💻 Run Locally</b></summary>
+2. **Create virtual environment**
+   ```bash
+   python -m venv .venv
+   .venv\Scripts\activate  # Windows
+   source .venv/bin/activate  # Mac/Linux
+   ```
+
+3. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Configure environment variables**
+   ```bash
+   cp .env.example .env
+   # Edit .env and add your API keys (see below)
+   ```
+
+5. **Run the application**
+   ```bash
+   # Development mode (with auto-reload)
+   python start_server.py
+   
+   # Production mode (optimized with Waitress)
+   python server.py
+   ```
+
+6. **Open in browser**
+   ```
+   http://localhost:5000
+   ```
+
+## ⚙️ Configuration
+
+Create a `.env` file in the project root with your API keys. You need **at least one LLM provider** to be configured:
+
+```env
+# LLM Providers (configure at least one)
+OPENAI_API_KEY=sk-proj-...              # OpenAI GPT-4
+ANTHROPIC_API_KEY=sk-ant-api-...        # Anthropic Claude
+GROQ_API_KEY=gsk_...                    # Groq (FREE)
+GEMINI_API_KEY=AIza...                  # Google Gemini (FREE)
+
+# Optional Services
+WEATHER_API_KEY=...                      # OpenWeatherMap (optional)
+GOOGLE_CSE_ID=...                        # Google Custom Search (optional)
+GOOGLE_API_KEY=...                       # Google API (optional)
+```
+
+### Getting API Keys
+
+| Provider | URL | Cost | Notes |
+|----------|-----|------|-------|
+| **OpenAI** | [platform.openai.com](https://platform.openai.com/api-keys) | Pay-per-use | Best quality, trial credits available |
+| **Anthropic** | [console.anthropic.com](https://console.anthropic.com) | Pay-per-use | Excellent for code, trial credits |
+| **Groq** | [console.groq.com](https://console.groq.com) | **FREE** | Ultra-fast, generous free tier |
+| **Gemini** | [makersuite.google.com](https://makersuite.google.com/app/apikey) | **FREE** | Good quality, 60 req/min free |
+| **Ollama** | [ollama.ai](https://ollama.ai) | **FREE** | Runs locally, complete privacy |
+| **Weather** | [openweathermap.org](https://openweathermap.org/api) | FREE tier | Optional for weather features |
+
+### Ollama Setup (Optional - Local Models)
+
+For completely free and private AI:
 
 ```bash
-# Clone and setup
-git clone https://github.com/Avik-Ghosh07/Nextor-Ai_Assistant.git
-cd Nextor-Ai_Assistant
+# 1. Install Ollama from ollama.ai
+# 2. Pull models
+ollama pull llama2      # General purpose
+ollama pull mistral     # Fast and capable
+ollama pull codellama   # Optimized for code
 
+# 3. Start Ollama server
+ollama serve
+```
+
+No API key needed - runs 100% locally!
+
+## 📁 Project Structure
+
+The project follows clean MVC (Model-View-Controller) architecture:
+
+```
+Nextor-Ai-Assistant/
+├── app/                          # Main application package
+│   ├── __init__.py              # Flask app factory
+│   ├── __version__.py           # Version info
+│   │
+│   ├── config/                  # Configuration
+│   │   └── settings.py          # App settings and constants
+│   │
+│   ├── controllers/             # HTTP request handlers
+│   │   ├── api_controller.py    # General API endpoints
+│   │   ├── chat_controller.py   # Chat/AI endpoints
+│   │   └── weather_controller.py # Weather endpoints
+│   │
+│   ├── services/                # Business logic layer
+│   │   ├── chat_service.py      # AI chat integration
+│   │   ├── weather_service.py   # Weather data processing
+│   │   └── web_search_service.py # Web search functionality
+│   │
+│   ├── models/                  # Data models and constants
+│   │   ├── knowledge_base.py    # Built-in knowledge
+│   │   └── weather_codes.py     # Weather condition mappings
+│   │
+│   └── utils/                   # Utility functions
+│       ├── helpers.py           # Helper functions
+│       ├── logger.py            # Logging configuration
+│       ├── rate_limiter.py      # Rate limiting
+│       └── security.py          # Security utilities
+│
+├── static/                      # Frontend files
+│   ├── index.html              # Main UI
+│   ├── script.js               # Client-side JavaScript
+│   └── style.css               # Styling
+│
+├── backup/                      # Archived old files
+├── logs/                        # Application logs
+│   └── nextor.log
+│
+├── llm_manager.py              # LLM provider integration
+├── server.py                   # Production entry point
+├── start_server.py             # Development server
+├── requirements.txt            # Python dependencies
+└── .env                        # Environment variables (create from .env.example)
+```
+
+## 🎯 Usage
+
+1. **Select AI Provider** - Choose from dropdown or let system auto-select
+2. **Ask Questions** - Type or speak your question
+3. **Get Responses** - AI responds with web search and weather integration
+
+### Example Queries
+
+```
+"What's the weather in London?"
+"Explain quantum computing"
+"Write a Python function to sort a list"
+"Search for latest AI news"
+"Calculate 15% of 250"
+```
+
+## 🔌 API Endpoints
+
+| Endpoint | Method | Description | Parameters |
+|----------|--------|-------------|------------|
+| `/` | GET | Main UI | - |
+| `/api/health` | GET | Health check | - |
+| `/api/chat` | POST | Chat with AI | `message`, `provider` (optional) |
+| `/api/weather` | GET | Get weather | `location` |
+
+### Example API Call
+
+```bash
+curl -X POST http://localhost:5000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Hello!", "provider": "groq"}'
+```
+
+## 🛠️ Development
+
+### Running Tests
+```bash
+python -m pytest tests/
+```
+
+### Code Structure
+- **Controllers** - Handle HTTP requests/responses only
+- **Services** - Contain all business logic
+- **Models** - Define data structures
+- **Utils** - Reusable helper functions
+
+### Adding New Features
+1. Create service in `app/services/`
+2. Add controller in `app/controllers/`
+3. Register blueprint in `app/__init__.py`
+4. Update frontend in `static/`
+
+## 🚢 Deployment
+
+### Render.com (Recommended)
+1. Push code to GitHub
+2. Connect repository to Render
+3. Add environment variables
+4. Deploy - `render.yaml` is pre-configured
+
+### Manual Deployment
+```bash
 # Install dependencies
 pip install -r requirements.txt
 
-# Run server (with Waitress WSGI)
+# Set environment variables
+export OPENAI_API_KEY=your_key
+
+# Run production server
 python server.py
 ```
 
-Open **http://127.0.0.1:5000** → Allow permissions → Start talking!
+Server runs on port 5000 with Waitress WSGI for production stability.
 
-**Environment Variables** (Optional):
-```bash
-GEMINI_API_KEY=your_key    # For AI features (works without it)
-ALLOWED_ORIGINS=*          # CORS configuration
-RATE_LIMIT=60              # Requests per minute
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**"No LLM provider configured"**
+- Add at least one API key to `.env` file
+- Restart the server after editing `.env`
+
+**"API key invalid"**
+- Verify key is correct (no extra spaces)
+- Check key hasn't expired
+- Regenerate key if needed
+
+**"Port 5000 already in use"**
+- Change port in `server.py`: `serve(app, port=8000)`
+- Or kill process: `lsof -ti:5000 | xargs kill -9` (Mac/Linux)
+
+**"Module not found" errors**
+- Activate virtual environment: `.venv\Scripts\activate`
+- Reinstall: `pip install -r requirements.txt`
+
+**"No response from AI"**
+- Check logs: `tail -f logs/nextor.log`
+- Verify API key is valid
+- Try different provider
+- Check internet connection
+
+**Ollama not working**
+- Start Ollama: `ollama serve`
+- Pull a model: `ollama pull llama2`
+- Verify port 11434 is open
+
+### Debug Mode
+
+Enable detailed logging in `.env`:
+```env
+FLASK_DEBUG=True
+LOG_LEVEL=DEBUG
 ```
 
-</details>
+## 📊 Dependencies
 
----
-
-## 🎯 Core Features
-
-| Feature | Description |
-|---------|-------------|
-| 🎙️ **Voice Control** | Natural speech recognition with text-to-speech responses |
-| 🤖 **AI Chat** | Google Gemini 2.0 Flash with smart web search fallback |
-| ⏰ **Smart Reminders** | Natural language parsing ("in 10 minutes", "at 6 PM") |
-| 🌤️ **Live Weather** | Auto-location with real-time updates and advice |
-| 🎵 **Music Player** | YouTube integration for Hindi, English, Bengali songs |
-| 🧮 **Calculator** | Voice-activated math ("what is 25 times 4") |
-| 🔍 **Web Search** | Integrated Wikipedia, DuckDuckGo, Google search |
-| 💡 **Productivity** | Tips, motivational quotes, work-life balance advice |
-| 📱 **Responsive** | Optimized for mobile, tablet, desktop (iOS 12+, Android 5+) |
-
----
-
-## 🏗️ Engineering Excellence
-
-<details>
-<summary><b>🐍 Backend Architecture (Python/Flask)</b></summary>
-
-- ✅ **Type Safety**: Full type hints (Python 3.8+ compatible with `Optional`, `Union`)
-- ✅ **Logging**: Professional logging system (`logs/nextor.log`) with rotation
-- ✅ **Error Handling**: Try-catch blocks with graceful degradation
-- ✅ **Security**: Input sanitization, XSS prevention, CORS, rate limiting
-- ✅ **Production Server**: Waitress WSGI for scalability
-- ✅ **API Design**: RESTful endpoints with proper HTTP status codes
-- ✅ **Clean Code**: PEP 8 compliant, comprehensive docstrings
-
-</details>
-
-<details>
-<summary><b>💻 Frontend Architecture (JavaScript)</b></summary>
-
-- ✅ **Modern ES6+**: Async/await, arrow functions, template literals
-- ✅ **Security**: HTML escaping, CSP headers, input validation
-- ✅ **UX**: Loading states, error feedback, haptic vibrations
-- ✅ **Storage**: LocalStorage with quota management and error handling
-- ✅ **Responsive**: Mobile-first with Tailwind CSS
-- ✅ **Accessibility**: Semantic HTML, ARIA labels, keyboard navigation
-
-</details>
-
-<details>
-<summary><b>🔒 Security Features</b></summary>
-
-- Input validation and sanitization on both client and server
-- XSS prevention with HTML escaping and CSP headers
-- CORS protection with configurable origins
-- Rate limiting (60 req/min per IP, configurable)
-- Security headers: HSTS, X-Frame-Options, X-Content-Type-Options
-- No data collection - all data stored locally in browser
-
-</details>
-
----
-
-## 🎤 Voice Commands Examples
-
-```bash
-# Music & Entertainment
-"play a hindi song" | "play Shape of You" | "tell me a joke"
-
-# Information
-"what's the weather" | "what time is it" | "who is Jensen Huang"
-
-# Reminders
-"remind me to call mom in 10 minutes" | "remind me at 6:30 PM"
-
-# Productivity
-"motivate me" | "give me productivity tips" | "career advice"
-
-# Navigation
-"open youtube" | "search for climate change" | "calculate 25 times 4"
-```
-
-<details>
-<summary><b>📋 Full Command List</b></summary>
-
-**Time & Date**: time, date, day  
-**Weather**: weather, temperature  
-**Music**: play [song/language], stop music  
-**Reminders**: remind me, set reminder  
-**Search**: search for, google, find  
-**Apps**: open [youtube/gmail/whatsapp/etc]  
-**Math**: calculate, what is [math expression]  
-**Fun**: joke, fun fact, flip a coin, roll dice  
-**Productivity**: productivity tips, motivation, study tips, career advice  
-**Teach**: Custom responses via UI
-
-</details>
-
----
-
-## 🔧 Troubleshooting
-
-<details>
-<summary><b>📱 Mobile Issues</b></summary>
-
-**Location not working?**
-- Must use HTTPS (Render provides automatically)
-- iOS: Settings → Safari → Location → While Using App
-- Android: Settings → Chrome → Permissions → Location → Allow
-
-**Notifications not showing?**
-- Allow notifications when prompted
-- Check browser settings
-- Keep tab active or in background
-
-</details>
-
-<details>
-<summary><b>🐛 Technical Issues</b></summary>
-
-**Voice recognition not working?**
-- Use Chrome, Edge, or Safari (best support)
-- Check microphone permissions
-- Requires HTTPS or localhost
-
-**Debugging:**
-- Browser console: Press F12
-- Server logs: `logs/nextor.log`
-- Test endpoint: `http://localhost:5000/api/health`
-
-</details>
-
----
-
-## 📊 Project Stats
-
-| Metric | Value |
-|--------|-------|
-| **Total Lines** | ~4,000+ |
-| **Languages** | Python, JavaScript, HTML, CSS |
-| **API Endpoints** | 3 RESTful endpoints |
-| **Security Features** | 8+ implemented |
-| **Browser Support** | 95%+ modern browsers |
-| **Mobile Support** | iOS 12+, Android 5+ |
-
----
+- **Flask 2.3+** - Web framework
+- **Flask-CORS** - Cross-origin resource sharing
+- **Waitress** - Production WSGI server
+- **OpenAI** - GPT-4 API client
+- **Anthropic** - Claude API client
+- **Groq** - Groq API client
+- **google-generativeai** - Gemini API client
+- **ollama** - Local model support
+- **requests** - HTTP client
+- **beautifulsoup4** - Web scraping (optional)
+- **python-dotenv** - Environment management
 
 ## 🤝 Contributing
 
-Contributions welcome! Please see our guidelines:
-
-1. Fork → Create branch (`feature/AmazingFeature`)
-2. Commit (`git commit -m 'feat: Add feature'`)
-3. Push → Open Pull Request
-
-**Standards**: PEP 8, type hints, docstrings, test on multiple browsers
-
----
-
-## 📈 Roadmap
-
-**Coming Soon:**
-- [ ] 🌍 Multi-language support (Hindi,Bengali, Spanish, French)
-- [ ] 🎚️ Voice customization (speed, pitch, accent)
-- [ ] 📴 Offline mode with service workers
-- [ ] 🧩 Browser extension for quick access
-- [ ] 📱 Native mobile app (React Native)
-
-**Future Plans:**
-- [ ] 📅 Calendar integration (Google, Outlook)
-- [ ] 📧 Email notifications for reminders
-- [ ] 📊 Analytics dashboard
-- [ ] 🔌 Plugin system for custom commands
-
----
-
-## 👨‍💻 Author
-
-**Avik Ghosh** · [GitHub](https://github.com/Avik-Ghosh07)
-
----
+1. Fork the repository
+2. Create feature branch: `git checkout -b feature-name`
+3. Make changes and test
+4. Commit: `git commit -am 'Add feature'`
+5. Push: `git push origin feature-name`
+6. Submit pull request
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) file
+MIT License - See [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+- **Issues**: Check `logs/nextor.log` for errors
+- **Documentation**: See code comments and docstrings
+- **Updates**: Pull latest changes regularly
 
 ---
 
-<div align="center">
-
-**⭐ Star this repo if you find it helpful!**
-
-Made with ❤️ and enterprise-level engineering practices
-
-</div>
+**Version**: 2.0.0  
+**Architecture**: Clean MVC Pattern  
+**Status**: Production Ready ✅

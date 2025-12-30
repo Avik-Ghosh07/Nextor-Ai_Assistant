@@ -1,33 +1,32 @@
-"""
-API Controller - General API endpoints
-"""
-
 import datetime as dt
-from flask import Blueprint, jsonify, send_from_directory
+from flask import Blueprint, jsonify, send_from_directory, current_app
 
 from llm_manager import LLMManager
 
-bp = Blueprint('api', __name__)
+bp = Blueprint("api", __name__)
 
-# Initialize LLM Manager
-llm_manager = LLMManager()
+llm_manager = None
+
+def get_llm_manager():
+    global llm_manager
+    if llm_manager is None:
+        llm_manager = LLMManager()
+    return llm_manager
 
 
 @bp.route("/")
 def index():
-    """Serve the main HTML file"""
-    return send_from_directory('../static', "index.html")
+    return send_from_directory(current_app.static_folder, "index.html")
 
 
 @bp.route("/api/llm-status", methods=["GET"])
 def llm_status():
-    """Get status of available LLM providers"""
     try:
-        available_providers = llm_manager.get_available_providers()
+        providers = get_llm_manager().get_available_providers()
         return jsonify({
-            "available_providers": available_providers,
-            "provider_count": len(available_providers),
-            "has_ai": len(available_providers) > 0
+            "available_providers": providers,
+            "provider_count": len(providers),
+            "has_ai": len(providers) > 0
         })
     except Exception as e:
         return jsonify({
@@ -40,7 +39,6 @@ def llm_status():
 
 @bp.route("/api/health", methods=["GET"])
 def health():
-    """Health check endpoint with minimal information disclosure."""
     return jsonify({
         "status": "healthy",
         "timestamp": dt.datetime.now(dt.timezone.utc).isoformat()

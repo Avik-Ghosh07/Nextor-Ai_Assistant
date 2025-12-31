@@ -1363,7 +1363,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Website and app URLs with mobile deep links
     const websiteMap = {
         youtube: 'https://www.youtube.com',
-        whatsapp: 'https://web.whatsapp.com',
+        whatsapp: 'https://www.whatsapp.com',
         instagram: 'https://www.instagram.com',
         facebook: 'https://www.facebook.com',
         google: 'https://www.google.com',

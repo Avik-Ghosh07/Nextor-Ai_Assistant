@@ -1363,7 +1363,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Website and app URLs with mobile deep links
     const websiteMap = {
         youtube: 'https://www.youtube.com',
-        whatsapp: 'whatsapp://', // Opens WhatsApp desktop app or mobile app
+        whatsapp: 'https://web.whatsapp.com',
         instagram: 'https://www.instagram.com',
         facebook: 'https://www.facebook.com',
         google: 'https://www.google.com',
@@ -1375,6 +1375,10 @@ document.addEventListener('DOMContentLoaded', () => {
         ebay: 'https://www.ebay.com',
         reddit: 'https://www.reddit.com',
         github: 'https://www.github.com',
+        chatgpt: 'https://chat.openai.com',
+        jiohotstar: 'https://www.hotstar.com',
+        phonepay: 'https://www.phonepe.com',
+        googlepay: 'https://pay.google.com',
         stackoverflow: 'https://stackoverflow.com',
         gmail: 'https://mail.google.com',
         outlook: 'https://outlook.live.com',
